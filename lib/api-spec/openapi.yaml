@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: easyride
+    description: EasyRide bicycle rental and operations
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /easyride/state:
+    get:
+      operationId: getEasyRideState
+      tags: [easyride]
+      summary: Get the current EasyRide service state
+      description: Returns configurable stations, bicycles, rentals, maintenance records, activity and pricing. Availability is the latest recorded status, not live tracking.
+      responses:
+        "200":
+          description: Current service state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EasyRideState"
+    put:
+      operationId: saveEasyRideState
+      tags: [easyride]
+      summary: Save the current EasyRide service state
+      description: Saves the operator-managed service records and configurable information.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EasyRideStateInput"
+      responses:
+        "200":
+          description: Saved service state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EasyRideState"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,112 @@ components:
           type: string
       required:
         - status
+    EasyRideState:
+      type: object
+      required: [config, stations, bicycles, rentals, maintenance, activity]
+      properties:
+        config:
+          $ref: "#/components/schemas/EasyRideConfig"
+        stations:
+          type: array
+          items:
+            $ref: "#/components/schemas/EasyRideStation"
+        bicycles:
+          type: array
+          items:
+            $ref: "#/components/schemas/EasyRideBicycle"
+        rentals:
+          type: array
+          items:
+            $ref: "#/components/schemas/EasyRideRental"
+        maintenance:
+          type: array
+          items:
+            $ref: "#/components/schemas/EasyRideMaintenance"
+        activity:
+          type: array
+          items:
+            $ref: "#/components/schemas/EasyRideActivity"
+    EasyRideStateInput:
+      $ref: "#/components/schemas/EasyRideState"
+    EasyRideConfig:
+      type: object
+      required: [serviceName, serviceArea, hourlyRate, operatingCostPerDay, currency]
+      properties:
+        serviceName: { type: string }
+        serviceArea: { type: string }
+        hourlyRate: { type: number }
+        operatingCostPerDay: { type: number }
+        currency: { type: string }
+    EasyRideStation:
+      type: object
+      required: [id, name, area, landmark, active]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        area: { type: string }
+        landmark: { type: string }
+        active: { type: boolean }
+    EasyRideBicycle:
+      type: object
+      required: [id, code, type, stationId, status, condition, lastChecked]
+      properties:
+        id: { type: string }
+        code: { type: string }
+        type: { type: string }
+        stationId: { type: ["string", "null"] }
+        status:
+          type: string
+          enum: [available, rented, maintenance]
+        condition:
+          type: string
+          enum: [excellent, good, fair, faulty]
+        lastChecked: { type: string }
+    EasyRideRental:
+      type: object
+      required: [id, customerName, bicycleId, bicycleCode, pickupStationId, startedAt, returnedAt, durationMinutes, amount, paymentStatus, status, returnCondition, returnNotes]
+      properties:
+        id: { type: string }
+        customerName: { type: string }
+        bicycleId: { type: string }
+        bicycleCode: { type: string }
+        pickupStationId: { type: string }
+        startedAt: { type: string }
+        returnedAt: { type: ["string", "null"] }
+        durationMinutes: { type: ["integer", "null"] }
+        amount: { type: number }
+        paymentStatus:
+          type: string
+          enum: [paid, pending]
+        returnCondition:
+          type: ["string", "null"]
+          enum: [excellent, good, fair, faulty, null]
+        returnNotes: { type: ["string", "null"] }
+        status:
+          type: string
+          enum: [active, completed]
+    EasyRideMaintenance:
+      type: object
+      required: [id, bicycleId, bicycleCode, stationName, issue, reportedAt, status, repairCost]
+      properties:
+        id: { type: string }
+        bicycleId: { type: string }
+        bicycleCode: { type: string }
+        stationName: { type: string }
+        issue: { type: string }
+        reportedAt: { type: string }
+        repairCost: { type: number }
+        status:
+          type: string
+          enum: [open, in_progress, resolved]
+    EasyRideActivity:
+      type: object
+      required: [id, message, createdAt, kind]
+      properties:
+        id: { type: string }
+        message: { type: string }
+        createdAt: { type: string }
+        kind:
+          type: string
+          enum: [rental, return, maintenance, payment, station]
 

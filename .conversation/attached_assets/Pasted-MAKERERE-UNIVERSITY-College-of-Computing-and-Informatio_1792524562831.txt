@@ -1,0 +1,254 @@
+MAKERERE UNIVERSITY
+College of Computing and Information Sciences
+Department of Computer Science
+CSC 3119: USER INTERFACE DESIGN
+DELIVERABLE ONE
+NEED FINDING / PROBLEM IDENTIFICATION
+Approach: A real problem within our immediate environment
+Project: EasyRide – Community Bicycle Rental and Management System
+GROUP 2 (CS 3)
+No. Name Registration No.
+1 Keith Paul Kato 24/U/26593/EVE
+2 Elizabeth Ageno 24/U/25850/PS
+3 Joanita Kewoda 24/U/05727/EVE
+4 Mathias Atugonza 24/U/0273
+Supervisor/Assessor: Dr. Fiona Sozzi
+Submission date: 6th October 2026
+2
+TABLE OF CONTENTS
+Click any entry to jump to that section.
+1. Introduction............................................................................................................................3
+2. Method and Ethical Care .......................................................................................................3
+3. Interview Guide .....................................................................................................................4
+4. Summary of Participant Responses .......................................................................................6
+5. Observation Record ...............................................................................................................7
+6. Findings and User Needs.......................................................................................................7
+7. Problem Identification ...........................................................................................................7
+8. Conclusion .............................................................................................................................8
+References..................................................................................................................................8
+Appendix A: Group Contribution Record..................................................................................8
+3
+1. Introduction
+This deliverable follows Approach 2: a real problem in our environment. The problem is
+short-distance travel around Makerere University Main Campus, Kikoni and Wandegeya.
+Walking is cheap but slow and tiring, especially in rain. Boda-bodas are faster, but fares are
+high for frequent short trips and rise at peak hours and in bad weather. A digital campus bike
+service once operated at Makerere but has closed, so no affordable alternative is currently
+available.
+EasyRide is a proposed community bicycle-rental service with a web-based interface for two
+user groups: customers (students, staff, workers, visitors) and operators (people who manage
+bicycles, rentals, returns, payments and maintenance). As required, the project excludes native
+apps, GPS, sensors, smart locks and robots. Any availability shown will therefore be the most
+recently recorded status, not live tracking.
+1.1 Background: The Previous Campus Bike Service
+Makerere previously had a digital bike-sharing service. Users signed up through an app,
+obtained a bicycle at one of several stations across campus, and ended their trip by returning it
+to a station. A former operator of the service (OP2) told us that it worked digitally and solved
+some travel challenges, but closed because of high operational costs and relatively low returns.
+The same operator now runs the service in other environments that already have some basic
+conditions in place.
+This history matters for design: students still need an affordable short-distance option, and a
+working interface alone did not keep the service going. Our problem identification therefore
+considers both what users need and what operators need to keep the service sustainable.
+1.2 Scope
+The study is limited to Makerere and its surroundings. Because the previous operator now
+serves other places, we treat stations, prices and locations as configurable information in the
+interface, so the same design could later be reused elsewhere. Wider expansion is outside the
+scope of this project.
+Aim of the study: to understand how people currently make short trips and how rentals are
+managed, and to turn the evidence into a clear design problem.
+2. Method and Ethical Care
+2.1 Participants
+Seven people with direct experience of the problem were selected purposively. They are
+identified by codes only.
+Code Role Reason for inclusion
+P1 Potential customer Regular short-distance traveller affected by boda-boda
+fares.
+P2 Potential customer Observed while trying to find a bicycle.
+4
+Code Role Reason for inclusion
+P3 Potential customer
+(student)
+Daily short trips from Kikoni to campus.
+P4 Potential customer Previously rented a bicycle from a local operator.
+OP1 Operator Managed bicycle rentals in the former university system.
+OP2 Operator (former) Former operator of the digital bike service on campus; now
+runs it in other environments.
+EU1 Extreme user Evening student and on-campus document courier; up to
+12 trips in about 3 hours on a strict daily transport budget.
+2.2 Methods
+• Semi-structured interviews guided by a topic guide (Section 3), starting with recent real
+experiences and using follow-ups such as “What happened next?”
+• Contextual observation of P2 searching for a bicycle (Section 5).
+• Thematic analysis: notes were reviewed after each session, and repeated difficulties
+were grouped into themes and needs (Section 6).
+2.3 Ethical and Sensitivity Measures
+• Consent: each participant was told the academic purpose, that taking part is voluntary,
+that they may skip any question or stop at any time, and that only written notes would be
+taken.
+• Privacy: names, contacts, faces and identifying details are excluded. Photos or recordings
+are used only with permission.
+• Sensitive topics: money, safety incidents and work circumstances were discussed
+neutrally and optionally. No one was asked about income or family circumstances; only
+transport spending was discussed.
+• Respect for the extreme user: EU1’s situation is described as a design constraint, not
+as hardship or a deficiency.
+• Business information: the former operator’s organisation, current locations and any
+commercial details are not named in this report.
+• Data handling: notes are stored securely and used only for this coursework.
+2.4 Limitations
+The sample is small and drawn from one area, so the findings give design insight and are not
+statistically representative. The history of the previous service comes from one former
+operator’s account and has not been independently verified.
+5
+3. Interview Guide
+Opening statement (read to every participant): “We are Makerere students doing a class
+project on short-distance travel and bicycle rental. Taking part is voluntary. You may skip any
+question or stop at any time. We will take written notes only, and your name will not be used.
+May we continue?”
+3.1 Potential Customers
+1. Tell us about your most recent short trip around campus, Kikoni or Wandegeya.
+2. How did you travel, and why did you choose that option?
+3. What was the hardest part of the trip (cost, time, weather, other)?
+4. Roughly how much did the trip cost? (optional)
+5. Have you rented a bicycle before? How did you find and choose it?
+6. What would you need to know before renting (price, condition, location)?
+7. What did you do when your preferred option was not available?
+8. What would make short trips easier for you?
+3.2 Operator
+1. How do you record bicycles and their status?
+2. How do you know which bicycles are available, rented or faulty?
+3. What do you record at rental and return, including payments?
+4. What happens when many customers arrive at once?
+5. How are faults reported, and how do you stop a faulty bicycle being issued?
+6. What would make your work more reliable?
+3.3 Extreme User (added to 3.1)
+1. Walk us through a typical working evening.
+2. What happens when a trip takes longer or costs more than planned?
+3. What would save you the most time on a trip?
+3.4 Former Operator (service history)
+1. How did the previous campus bike service work from a user’s point of view?
+2. What worked well for users, and what did not?
+3. What led to the service closing?
+4. What conditions do you need in place when starting the service in a new place?
+6
+4. Summary of Participant Responses
+Code Summary of what the participant reported
+P1 Peak-hour boda-boda fares make short morning trips unaffordable, so the participant
+walks or abandons the trip.
+Accordingly, the participant always spends more in the morning on transport.
+P2 Walked about 15 minutes to a known bicycle shelter, found no bicycle, and had no way
+to check another location (see Section 5).
+There is need to digitise location lookups in the interface
+P3 Spends over UGX 4,000 a day on short boda-boda trips from Kikoni to the CIT labs
+when late for a 7:00 AM class. Fares double when it rains, leaving walking as the only
+option.
+P4 Rented a bicycle from a local operator and found the front brakes worn out while going
+downhill near the library; had to stop using shoes. Wants to know a bicycle’s condition
+before renting.
+OP1 Used paper records, spreadsheets and memory. Records were hardest to keep when
+several customers returned bicycles at the same time. Missed return times caused billing
+disagreements and unclear availability. Faults reported verbally could be missed,
+allowing a faulty bicycle to be issued again.
+OP2 Former operator of the campus digital bike service. Users signed up on an app, obtained
+bicycles at stations across campus and returned them to stations. The system worked
+digitally and solved some travel challenges, but the service closed because of
+operational costs and relatively low returns. The operator now runs it in other
+environments that already have basic conditions in place.
+Things like Maintenance on repair, No account for damages when bikes return
+EU1 Evening student and document courier. Makes up to 12 short trips in about 3 hours with
+a maximum daily transport budget of UGX 1,500. Queues, empty pickup points, unclear
+prices and repeated details cost time and money.
+Illustrative quotations
+“I waste over 4,000 UGX daily on short boda trips … just because I am running late for
+a 7:00 AM class, but on rainy days, the prices double.” – P3
+“Halfway down the steep road near the library, I realised the front brakes were completely
+worn down. I had to stop myself with my shoes.” – P4
+7
+5. Observation Record
+Participant P2
+Context Trying to find a bicycle for a short journey
+Location Near the School of Pharmacy, along Wandegeya Gate
+Date and time 02/09/2026, 4:35 pm
+Observers Keith and Joanita
+What happened The participant walked about 15 minutes to a known bicycle shelter
+station and found no bicycle. After hesitating for about 3 minutes with no
+way to check another location, the participant gave up and walked
+instead.
+Interpretation The wasted trip came from not knowing availability beforehand. This
+shows a need to see the latest recorded availability and alternative pickup
+points before travelling. It does not show a need for sensor-based
+tracking.
+6. Findings and User Needs
+Repeated evidence was grouped into six themes. The needs are listed in priority order, based
+on their effect on safety, time, cost and record accuracy. They are needs, not interface features.
+# Theme Evidence Need
+1 Missing availability
+information leads to
+wasted trips
+P2 observation See recorded availability and
+alternative pickup points before
+travelling.
+2 Unpredictable prices P1, P3 Know the price clearly before renting.
+3 Unknown bicycle
+condition
+P4, OP1 See bicycle condition; faulty bicycles
+must not appear available.
+4 Fragmented manual
+records
+OP1 Keep accurate rental, return and
+payment records in one place, with
+clear confirmation to customers.
+5 Tight constraints
+magnify small delays
+EU1 Rent and return quickly with few steps
+and clear confirmation.
+6 The previous service
+closed over cost and low
+returns
+OP2 Let operators see usage and costs, and
+set up stations and prices for any
+location.
+8
+7. Problem Identification
+Core problem. The problem is not the lack of a website. It is the lack of a clear, joined-up
+process that lets customers make confident rental decisions and lets operators keep accurate
+records.
+Problem statement. People making short trips around Makerere University need an
+affordable, dependable way to locate, evaluate, rent and return bicycles, but information on
+pickup points, availability, price, condition and return confirmation is scattered or missing.
+Operators need a reliable way to record bicycles, rentals, payments and faults, because manual
+methods cause omissions, billing disputes and the reissue of faulty bicycles. The previous
+digital campus service also closed because of operating costs and low returns, so the design
+must help operators keep the service sustainable.
+Point of view. EU1, an evening student and on-campus document courier, needs a fast,
+dependable and affordable way to find, rent and return a bicycle because they make up to 12
+time-sensitive trips in about 3 hours on a daily transport budget of UGX 1,500.
+Design challenge (HMW). How might we help people making short trips confidently locate,
+evaluate, rent and return a bicycle, while helping operators keep accurate availability, rental,
+payment and maintenance records and monitor usage, through a web interface that can be set
+up for different locations?
+Constraints. The solution must be web-based; serve customers and operators; need no sensors
+or special hardware; separate recorded from physically verified availability; treat stations,
+prices and locations as configurable so it can be reused elsewhere; stay simple under time
+pressure; and protect personal and payment information.
+8. Conclusion
+Interviews and observation with seven participants, including one extreme user and a former
+operator of the previous campus bike service, show that the main difficulties are unpredictable
+cost, unknown availability, unclear bicycle condition, fragmented operator records and the
+difficulty of sustaining the service. These needs and the problem statement will guide persona
+development, How Might We questions, ideation and storyboarding in the next deliverable.
+References
+IDEO.org. (2015). The Field Guide to Human-Centered Design. IDEO.org.
+International Organization for Standardization. (2019). ISO 9241-210:2019 Ergonomics of
+human-system interaction: Human-centred design for interactive systems. ISO.
+Preece, J., Rogers, Y., and Sharp, H. (2019). Interaction Design: Beyond Human-Computer
+Interaction (5th ed.). Wiley.
+Makerere University Digital Bikes. https://www.instagram.com/digitalbikesint/
+9
+Appendix A: Group Contribution Record
+Member Contribution to this deliverable
+Keith Paul Kato Data Collection Design
+Elizabeth Ageno Problem Identification
+Joanita Kewoda Interviewing Process Guide
+Mathias Atugonza Problem Analysis/User needs

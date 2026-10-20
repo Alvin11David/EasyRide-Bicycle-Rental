@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "EasyRide"
+description = "A responsive community bicycle rental and management system for Makerere University and its surroundings. Riders can compare recorded station availability, bicycle condition and prices, while operators manage rentals, returns, payments, faults, stations and service sustainability."
+version = "1.0.0"
+id = "artifacts/easyride"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 19063
+
+[services.development]
+run = "pnpm --filter @workspace/easyride run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/easyride", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/easyride/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "19063"
+BASE_PATH = "/"
