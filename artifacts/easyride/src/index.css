@@ -67,6 +67,25 @@
   --color-brand-surface: #f6f9f8;
   --color-brand-border: #e2ece9;
 
+  /* Staff console palette (separate namespace so it never clashes with the
+     customer-facing `brand-*` tokens above). */
+  --color-staff-pine: #0a353d;
+  --color-staff-pine-hover: #0e4650;
+  --color-staff-teal: #0d3b42;
+  --color-staff-teal-light: #144c55;
+  --color-staff-surface: #f7fafb;
+  --color-staff-amber: #f59e0b;
+  --color-staff-emerald: #10b981;
+  --color-staff-emerald-soft: #ecfdf5;
+  --color-staff-emerald-dark: #047857;
+
+  --shadow-card:
+    0 1px 3px 0 rgba(13, 59, 66, 0.04), 0 1px 2px -1px rgba(13, 59, 66, 0.03);
+  --shadow-card-hover:
+    0 8px 24px -4px rgba(13, 59, 66, 0.08), 0 2px 6px -1px rgba(13, 59, 66, 0.04);
+  --shadow-subtle:
+    0 0 0 1px rgba(15, 23, 42, 0.05), 0 1px 3px 0 rgba(15, 23, 42, 0.05);
+
   --font-sans: 'Inter', var(--app-font-sans);
   --font-display: 'Outfit', sans-serif;
   --font-serif: var(--app-font-serif);

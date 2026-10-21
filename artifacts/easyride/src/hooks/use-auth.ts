@@ -46,7 +46,7 @@ export const DEFAULT_USERS: EasyRideUser[] = [
     password: "password123",
     role: "staff",
     phone: "+256 701 987 654",
-    stationId: "station-makerere-main",
+    stationId: "station-main",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
     createdAt: "2026-01-10T08:30:00.000Z",
   },
@@ -173,7 +173,7 @@ export function useAuth() {
         password: data.password || "password123",
         role: data.role,
         phone: data.phone?.trim() || "",
-        stationId: data.role === "staff" ? data.stationId || "station-makerere-main" : undefined,
+        stationId: data.role === "staff" ? data.stationId || "station-main" : undefined,
         createdAt: new Date().toISOString(),
         avatar:
           data.role === "staff"
