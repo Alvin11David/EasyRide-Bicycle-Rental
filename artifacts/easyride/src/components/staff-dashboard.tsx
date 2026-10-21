@@ -9,6 +9,7 @@ import type {
 } from "@workspace/api-client-react";
 import type { EasyRideUser } from "@/hooks/use-auth";
 import { getBikeMeta } from "@/lib/mock-data";
+import StaffReturnFlow from "@/components/staff-return-flow";
 import {
   isCustomerRental,
   readCustomerRentalMeta,
@@ -573,10 +574,8 @@ export default function StaffDashboard({
     [state.stations, currentUser?.stationId],
   );
 
-  const [returnId, setReturnId] = useState("");
-  const [returnCondition, setReturnCondition] = useState<EasyRideBicycle["condition"] | "">("");
-  const [returnNotes, setReturnNotes] = useState("");
-  const [paymentPaid, setPaymentPaid] = useState(true);
+  /** Rental that is currently going through the check-in flow. */
+  const [returnFlowId, setReturnFlowId] = useState("");
   const [issueBike, setIssueBike] = useState("");
   const [issueText, setIssueText] = useState("");
   const [hourlyRateInput, setHourlyRateInput] = useState(String(state.config.hourlyRate));
@@ -770,8 +769,20 @@ export default function StaffDashboard({
     });
   };
 
-  const closeRental = (rental: EasyRideRental) => {
-    if (!returnCondition) return;
+  const closeRental = (
+    rental: EasyRideRental,
+    outcome: {
+      condition: EasyRideBicycle["condition"];
+      notes?: string;
+      paymentPaid?: boolean;
+      /** Quarantine the bicycle to the workshop on close. */
+      quarantine?: boolean;
+    },
+  ) => {
+    const condition = outcome.condition;
+    const note = (outcome.notes ?? "").trim();
+    const paid = outcome.paymentPaid ?? true;
+    if (!condition) return;
     const now = new Date();
     const started = new Date(rental.startedAt);
     const duration = Math.max(
@@ -781,8 +792,8 @@ export default function StaffDashboard({
     const amount = Math.ceil(duration / 60) * rentalRate(rental);
     const stationName =
       state.stations.find((s) => s.id === rental.pickupStationId)?.name || "Station";
-    const note = returnNotes.trim();
-    const isFaulty = returnCondition === "faulty" || note.length > 0;
+    const isFaulty =
+      outcome.quarantine ?? (condition === "faulty" || note.length > 0);
 
     const maintenanceRecord: EasyRideMaintenance | null = isFaulty
       ? {
@@ -807,8 +818,8 @@ export default function StaffDashboard({
               returnedAt: now.toISOString(),
               durationMinutes: duration,
               amount,
-              paymentStatus: paymentPaid ? "paid" : "pending",
-              returnCondition,
+              paymentStatus: paid ? "paid" : "pending",
+              returnCondition: condition,
               returnNotes: note || null,
             }
           : r,
@@ -818,7 +829,7 @@ export default function StaffDashboard({
           ? {
               ...b,
               status: isFaulty ? "maintenance" : "available",
-              condition: isFaulty ? "faulty" : returnCondition,
+              condition: isFaulty ? "faulty" : condition,
               lastChecked: now.toISOString(),
             }
           : b,
@@ -829,7 +840,7 @@ export default function StaffDashboard({
       activity: [
         {
           id: uid(),
-          message: `Rental closed: ${rental.bicycleCode} checked in by staff · ${money(amount, state.config.currency)} collected (${paymentPaid ? "Paid" : "Pending"})`,
+          message: `Rental closed: ${rental.bicycleCode} checked in by staff · ${money(amount, state.config.currency)} collected (${paid ? "Paid" : "Pending"})`,
           createdAt: now.toISOString(),
           kind: "return" as const,
         },
@@ -847,9 +858,7 @@ export default function StaffDashboard({
       ].slice(0, 100),
     });
 
-    setReturnId("");
-    setReturnCondition("");
-    setReturnNotes("");
+    setReturnFlowId("");
 
     // Keep the rider app in step when the station team closes a hire that
     // was booked from the rider app.
@@ -1585,11 +1594,7 @@ export default function StaffDashboard({
                         View Details
                       </button>
                       <button
-                        onClick={() => {
-                          setReturnId(f.rental.id);
-                          setReturnCondition("good");
-                          setReturnNotes("");
-                        }}
+                        onClick={() => setReturnFlowId(f.rental.id)}
                         className="flex cursor-pointer items-center whitespace-nowrap rounded-xl bg-staff-teal px-4 py-2.5 text-xs font-semibold text-white shadow-card transition-all hover:bg-staff-pine-hover"
                       >
                         <Glyph name="check" className="mr-1.5 h-3.5 w-3.5" />
@@ -1635,66 +1640,6 @@ export default function StaffDashboard({
                     </div>
                   ) : null}
 
-                  {/* Return & close */}
-                  {returnId === f.rental.id ? (
-                    <div className="mt-4 rounded-xl border border-staff-teal/15 bg-staff-teal/5 p-4">
-                      <h5 className="text-xs font-bold text-slate-800">
-                        Verify Condition &amp; Close
-                      </h5>
-                      <div className="mt-2 grid grid-cols-2 gap-2 text-xs">
-                        <Field label="Condition">
-                          <select
-                            value={returnCondition}
-                            onChange={(e) =>
-                              setReturnCondition(
-                                e.target.value as EasyRideBicycle["condition"],
-                              )
-                            }
-                            className={inputClass}
-                          >
-                            {["excellent", "good", "fair", "faulty"].map((c) => (
-                              <option key={c} value={c}>
-                                {textCase(c)}
-                              </option>
-                            ))}
-                          </select>
-                        </Field>
-                        <Field label="Payment Status">
-                          <select
-                            value={paymentPaid ? "paid" : "pending"}
-                            onChange={(e) => setPaymentPaid(e.target.value === "paid")}
-                            className={inputClass}
-                          >
-                            <option value="paid">
-                              Paid ({money(f.amountDue, state.config.currency)})
-                            </option>
-                            <option value="pending">Pending Collection</option>
-                          </select>
-                        </Field>
-                      </div>
-
-                      <div className="mt-2">
-                        <Field label="Staff inspection notes">
-                          <input
-                            type="text"
-                            value={returnNotes}
-                            onChange={(e) => setReturnNotes(e.target.value)}
-                            placeholder="e.g. Checked tires and brakes, clean"
-                            className={inputClass}
-                          />
-                        </Field>
-                      </div>
-
-                      <div className="mt-3 flex gap-2">
-                        <button onClick={() => closeRental(f.rental)} className={`${primaryButton} flex-1`}>
-                          Close Rental &amp; Record
-                        </button>
-                        <button onClick={() => setReturnId("")} className={secondaryButton}>
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
                 </article>
               );
             })
@@ -2737,6 +2682,61 @@ export default function StaffDashboard({
     }
   };
 
+  /**
+   * The check-in flow a station worker walks through when a rider hands a
+   * bicycle back.
+   */
+  const renderReturnFlow = () => {
+    const rental = state.rentals.find((r) => r.id === returnFlowId);
+    if (!rental) return renderSection();
+
+    const bike = state.bicycles.find((b) => b.id === rental.bicycleId) ?? null;
+    const meta = bike ? getBikeMeta(bike) : null;
+    const station =
+      state.stations.find((s) => s.id === rental.pickupStationId) ?? null;
+    const started = new Date(rental.startedAt);
+    const elapsedMins = Math.max(
+      1,
+      Math.ceil((Date.now() - started.getTime()) / 60_000),
+    );
+    const rate = rentalRate(rental);
+    const amountDue = Math.ceil(elapsedMins / 60) * rate;
+    const customerMeta = customerRentals[rental.id];
+    const borrower = users?.find(
+      (u) =>
+        u.name.trim().toLowerCase() === rental.customerName.trim().toLowerCase(),
+    );
+
+    return (
+      <StaffReturnFlow
+        rentalId={rental.id}
+        bikeCode={rental.bicycleCode}
+        modelName={customerMeta?.bikeName ?? meta?.modelName ?? ""}
+        image={meta?.image ?? "/bikes/bike-1.jpg"}
+        category={meta?.type ?? "City"}
+        riderName={rental.customerName}
+        riderPhone={borrower?.phone ?? customerMeta?.phone ?? ""}
+        stationName={station?.name ?? "Main Campus"}
+        stationLandmark={station?.landmark}
+        startedAt={rental.startedAt}
+        rate={rate}
+        amountDue={amountDue}
+        currency={state.config.currency}
+        staffName={staffName}
+        flowId={`CHK-${new Date().getFullYear()}-${(rental.id.match(/\d+/g)?.join("").slice(-4) || "0000")}`}
+        onExit={() => setReturnFlowId("")}
+        onComplete={(outcome) => {
+          closeRental(rental, {
+            condition: outcome.condition,
+            notes: outcome.notes,
+            paymentPaid: outcome.paymentPaid,
+            quarantine: outcome.condition === "faulty",
+          });
+        }}
+      />
+    );
+  };
+
   const staffName = currentUser?.name || "Station Worker";
   const staffInitials = initials(staffName);
 
@@ -2952,7 +2952,7 @@ export default function StaffDashboard({
 
         {/* Page content */}
         <main className="mx-auto w-full max-w-7xl flex-1 space-y-7 p-6 lg:p-10">
-          {renderSection()}
+          {returnFlowId ? renderReturnFlow() : renderSection()}
         </main>
       </div>
     </div>
