@@ -34,6 +34,16 @@ export const clockTime = (value?: string | null) =>
       })
     : "—";
 
+/** Short 24h clock ("16:45") used by the staff fleet timelines. */
+export const shortTime = (value?: string | number | Date | null) =>
+  value === undefined || value === null
+    ? "—"
+    : new Date(value).toLocaleTimeString("en-UG", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+
 export const initials = (name?: string | null) =>
   (name || "ER")
     .split(/\s+/)

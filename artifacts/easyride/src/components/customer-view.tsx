@@ -1,6 +1,15 @@
 import { useState, useMemo, useRef, useEffect } from "react";
 import { Link } from "wouter";
+import type { EasyRideState } from "@workspace/api-client-react";
 import type { EasyRideUser } from "@/hooks/use-auth";
+import {
+  applyCustomerRental,
+  completeCustomerRental,
+  customerRentalId,
+  forgetCustomerRental,
+  KAMPALA_STATIONS,
+} from "@/lib/customer-bridge";
+import { money } from "@/lib/format";
 
 export interface CustomerFleetBike {
   id: string;
@@ -32,16 +41,7 @@ export interface CustomerOrder {
   status: "active" | "completed";
 }
 
-export const KAMPALA_STATIONS = [
-  { name: "Makerere Hill Road", open: true, count: 18, desc: "Main Campus Library Gate" },
-  { name: "Wandegeya Market", open: true, count: 12, desc: "Market & Plaza Junction" },
-  { name: "Kiwatule Rec Centre", open: true, count: 15, desc: "Kabaka's Trail Way" },
-  { name: "Ntinda Junction", open: true, count: 10, desc: "Kisementi & Capital Shoppers" },
-  { name: "Bugolobi Village Mall", open: true, count: 14, desc: "Spring Road Hub" },
-  { name: "Acacia Mall", open: true, count: 16, desc: "Kololo Hill Avenue" },
-  { name: "Nakaserero Market", open: true, count: 8, desc: "Downtown Commercial Dock" },
-  { name: "Kasubi Tombs", open: true, count: 7, desc: "Heritage Gateway Bay" },
-];
+export { KAMPALA_STATIONS };
 
 export const BASE_CUSTOMER_BIKES: CustomerFleetBike[] = [
   {
@@ -267,14 +267,22 @@ const FLEET_STORAGE_KEY = "bikerent_customer_fleet_v1";
 const ORDERS_STORAGE_KEY = "bikerent_customer_orders_v1";
 
 export function CustomerView({
+  state,
+  save,
   currentUser,
   onSignOut,
   onBackToGuest,
 }: {
+  state?: EasyRideState;
+  save?: (state: EasyRideState) => void;
   currentUser?: EasyRideUser | null;
   onSignOut?: () => void;
   onBackToGuest?: () => void;
 }) {
+  // Currency comes from the shared configuration so the rider app and the
+  // staff console always quote a hire the same way.
+  const currency = state?.config.currency ?? "UGX";
+
   const [fleet, setFleet] = useState<CustomerFleetBike[]>(() => {
     if (typeof window === "undefined") return generate100Fleet();
     try {
@@ -411,8 +419,31 @@ export function CustomerView({
     };
 
     saveOrdersLocal([newOrder, ...orders]);
+
+    // Mirror the booking into the shared state so the station team sees the
+    // bike as borrowed straight away (no backend — localStorage only).
+    if (state && save) {
+      save(
+        applyCustomerRental(state, {
+          orderId: newOrder.orderId,
+          bikeId: newOrder.bikeId,
+          bikeCode: newOrder.bikeCode,
+          bikeName: newOrder.bikeName,
+          bikeType: rentModalBike.type,
+          customerName: newOrder.customerName,
+          phone: newOrder.phone,
+          stationName: newOrder.station,
+          stationLandmark:
+            KAMPALA_STATIONS.find((s) => s.name === newOrder.station)?.desc,
+          rate: rentModalBike.rate,
+          hours: rentHours,
+          amount: totalAmount,
+        }),
+      );
+    }
+
     setRentModalBike(null);
-    showToast("Rental Confirmed!", `${rentModalBike.name} unlocked at ${rentModalBike.station}. Total: Shs ${totalAmount}`);
+    showToast("Rental Confirmed!", `${rentModalBike.name} unlocked at ${rentModalBike.station}. Total: ${money(totalAmount, currency)}`);
   };
 
   const handleReturnBike = (orderId: string) => {
@@ -424,6 +455,14 @@ export function CustomerView({
       const updatedFleet = fleet.map((b) => (b.id === order.bikeId ? { ...b, status: "available" as const } : b));
       saveFleetLocal(updatedFleet);
     }
+
+    // Close the matching hire in the shared state so it also leaves the
+    // staff "Borrowed Bikes" list.
+    if (state && save) {
+      save(completeCustomerRental(state, customerRentalId(orderId)));
+    }
+    forgetCustomerRental(orderId);
+
     showToast("Bike Returned Successfully", "Thank you for riding with BikeRent Uganda! Receipt saved.");
   };
 
@@ -440,7 +479,7 @@ export function CustomerView({
                 <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                 </svg>
-                Free Delivery on rentals above Shs 150,000
+                Free Delivery on rentals above {money(150000, currency)}
               </span>
               <span className="flex items-center gap-1.5">
                 <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -793,7 +832,7 @@ export function CustomerView({
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-goldLight text-brand-dark rounded-full text-xs font-bold uppercase tracking-wider mb-3">
                     <svg className="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                     </svg>
                     Easy Ride Reservation
                   </div>
@@ -827,7 +866,7 @@ export function CustomerView({
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center px-2.5 pointer-events-none text-slate-400">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                           </svg>
                         </div>
                       </div>
@@ -851,7 +890,7 @@ export function CustomerView({
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center px-2.5 pointer-events-none text-slate-400">
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                            <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                           </svg>
                         </div>
                       </div>
@@ -864,7 +903,7 @@ export function CustomerView({
                       className="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-dark hover:bg-brand-primary text-white text-xs font-bold rounded-xl shadow-md shadow-brand-dark/20 transition transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
                     >
                       <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                        <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                       </svg>
                       Find Rides
                     </button>
@@ -894,7 +933,7 @@ export function CustomerView({
                   <div className="absolute -left-10 -top-10 w-36 h-36 rounded-full bg-brand-mint/10 pointer-events-none"></div>
                   <div className="w-14 h-14 rounded-2xl bg-white shadow-sm border border-brand-border flex items-center justify-center mb-3 text-brand-dark group-hover:scale-110 transition duration-300">
                     <svg className="w-7 h-7 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+                      <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8"></path>
                     </svg>
                   </div>
                   <h3 className="font-display font-bold text-sm tracking-wide text-brand-dark">[Browse Rides Map &amp; Fleet Wireframe]</h3>
@@ -917,7 +956,7 @@ export function CustomerView({
                 <div className="flex items-center justify-between pb-3 border-b border-slate-100">
                   <div className="flex items-center space-x-2 text-brand-dark">
                     <svg className="w-4 h-4 text-brand-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                      <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                     </svg>
                     <h3 className="font-display font-bold text-sm text-brand-dark">Filters</h3>
                   </div>
@@ -930,7 +969,7 @@ export function CustomerView({
                 <div className="space-y-3">
                   <div className="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
                     <svg className="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                      <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                     </svg>
                     <span>Price Range (Hourly)</span>
                   </div>
@@ -949,11 +988,11 @@ export function CustomerView({
                   </div>
                   <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
                     <div className="bg-brand-surface px-2.5 py-1.5 rounded-lg border border-brand-border font-semibold text-brand-dark">
-                      Shs 0
+                      {money(0, currency)}
                     </div>
                     <span className="text-slate-400 font-medium">to</span>
                     <div className="bg-brand-surface px-2.5 py-1.5 rounded-lg border border-brand-border font-semibold text-brand-dark">
-                      Shs {maxPrice}
+                      {money(maxPrice, currency)}
                     </div>
                   </div>
                 </div>
@@ -964,7 +1003,7 @@ export function CustomerView({
                 <div className="space-y-2.5">
                   <div className="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
                     <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                      <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                     </svg>
                     <span>Brand</span>
                   </div>
@@ -985,7 +1024,7 @@ export function CustomerView({
                 <div className="space-y-2.5">
                   <div className="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
                     <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                      <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                     </svg>
                     <span>Availability</span>
                   </div>
@@ -1118,7 +1157,7 @@ export function CustomerView({
                             <span className="ml-1 text-slate-400 font-normal">({bike.reviews})</span>
                           </div>
                           <div className="flex items-baseline space-x-1 pt-1">
-                            <span className="text-lg font-extrabold text-slate-900 font-display">Shs {bike.rate}</span>
+                            <span className="text-lg font-extrabold text-slate-900 font-display">{money(bike.rate, currency)}</span>
                             <span className="text-xs text-slate-400 font-normal">/hour</span>
                           </div>
                           <div className="flex items-center gap-1.5 text-xs text-slate-500 pt-0.5">
@@ -1232,7 +1271,7 @@ export function CustomerView({
               </div>
               <div className="mt-6 flex items-center gap-3">
                 <div className="inline-flex items-baseline px-5 py-2.5 bg-brand-surface border border-brand-border rounded-2xl">
-                  <span className="text-xl font-extrabold font-display text-brand-dark">Shs 100</span>
+                  <span className="text-xl font-extrabold font-display text-brand-dark">{money(100, currency)}</span>
                   <span className="text-xs font-semibold text-slate-500 ml-1.5 uppercase">Per Hour Avg</span>
                 </div>
                 <span className="text-xs text-slate-400 font-medium">Instant mobile money &amp; card checkout</span>
@@ -1351,7 +1390,7 @@ export function CustomerView({
               </div>
               <div className="p-3 bg-brand-goldLight rounded-xl border border-amber-200 flex justify-between items-center font-bold">
                 <span className="text-amber-900">Estimated Rental Fee</span>
-                <span className="text-base text-brand-dark font-display">Shs {rentModalBike.rate * rentHours}</span>
+                <span className="text-base text-brand-dark font-display">{money(rentModalBike.rate * rentHours, currency)}</span>
               </div>
             </div>
 
@@ -1412,7 +1451,7 @@ export function CustomerView({
                     <div className="flex flex-wrap items-center justify-between text-slate-500 text-[11px] pt-1">
                       <span>Code: <b>{order.bikeCode}</b></span>
                       <span>Hub: <b>{order.station}</b></span>
-                      <span>Amount: <b className="text-brand-dark">Shs {order.totalAmount}</b></span>
+                      <span>Amount: <b className="text-brand-dark">{money(order.totalAmount, currency)}</b></span>
                     </div>
                     {order.status === "active" && (
                       <div className="pt-2 flex justify-end">

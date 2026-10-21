@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import type {
   EasyRideActivity,
   EasyRideBicycle,
@@ -9,7 +9,13 @@ import type {
 } from "@workspace/api-client-react";
 import type { EasyRideUser } from "@/hooks/use-auth";
 import { getBikeMeta } from "@/lib/mock-data";
-import { clockTime, initials, money, niceDate, textCase, uid, when } from "@/lib/format";
+import {
+  isCustomerRental,
+  readCustomerRentalMeta,
+  reconcileCustomerRentals,
+  releaseCustomerOrder,
+} from "@/lib/customer-bridge";
+import { clockTime, initials, money, niceDate, shortTime, textCase, uid, when } from "@/lib/format";
 
 // ---------------------------------------------------------------------------
 // Icons — inlined so the console matches the approved staff mockup exactly.
@@ -18,6 +24,7 @@ import { clockTime, initials, money, niceDate, textCase, uid, when } from "@/lib
 type GlyphName =
   | "home"
   | "bike"
+  | "logo"
   | "card"
   | "users"
   | "cog"
@@ -28,8 +35,12 @@ type GlyphName =
   | "search"
   | "bell"
   | "chevron"
+  | "chevronLeft"
   | "clock"
   | "arrowRight"
+  | "download"
+  | "plus"
+  | "check"
   | "menu"
   | "x";
 
@@ -65,6 +76,15 @@ function Glyph({ name, className = "" }: { name: GlyphName; className?: string }
             strokeLinejoin="round"
           />
           <path d="M12 10.5 8 6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "logo":
+      return (
+        <svg {...base} strokeWidth={2}>
+          <circle cx="18.5" cy="17.5" r="3.5" />
+          <circle cx="5.5" cy="17.5" r="3.5" />
+          <circle cx="15" cy="5" r="1" />
+          <path d="M12 17.5V14l-3-3 4-3 2 3h2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
     case "card":
@@ -164,6 +184,34 @@ function Glyph({ name, className = "" }: { name: GlyphName; className?: string }
           <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
+    case "chevronLeft":
+      return (
+        <svg {...base} strokeWidth={2}>
+          <path d="M15 19l-7-7 7-7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "download":
+      return (
+        <svg {...base} strokeWidth={2}>
+          <path
+            d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
+    case "plus":
+      return (
+        <svg {...base} strokeWidth={2.5}>
+          <path d="M12 4v16m8-8H4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
+    case "check":
+      return (
+        <svg {...base} strokeWidth={2.5}>
+          <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     case "clock":
       return (
         <svg {...base} strokeWidth={2}>
@@ -219,23 +267,28 @@ const NAV_ITEMS: {
   { id: "borrowed", icon: "bike", title: "Borrowed Bikes", subtitle: "Fleet in use & returns" },
   { id: "transactions", icon: "card", title: "Manual Transactions", subtitle: "Manage fleet" },
   { id: "customers", icon: "users", title: "Customer Management", subtitle: "Manage customers" },
-  { id: "maintenance", icon: "cog", title: "Maintenance", subtitle: "Workshop & repairs" },
-  { id: "movement", icon: "arrows", title: "Bike Movement", subtitle: "Movement log" },
-  { id: "receipts", icon: "doc", title: "Receipts", subtitle: "Records & payments" },
-  { id: "settings", icon: "sliders", title: "Settings", subtitle: "Account & preferences" },
+  { id: "maintenance", icon: "cog", title: "Maintenance", subtitle: "Team management" },
+  { id: "movement", icon: "arrows", title: "Bike Movement", subtitle: "Reports & insights" },
+  { id: "receipts", icon: "doc", title: "Receipts", subtitle: "Location management" },
   { id: "reports", icon: "chart", title: "Reports", subtitle: "View and manage reports" },
 ];
 
-const SECTION_TITLES: Record<StaffSection, { eyebrow: string; title: string; detail: string }> = {
+const SECTION_TITLES: Record<
+  StaffSection,
+  { eyebrow: string; title: string; detail: string; banner?: string }
+> = {
   dashboard: {
     eyebrow: "Control Center",
     title: "Staff Dashboard",
-    detail: "Monitor rentals, receipts, and system activity across all stations in real time.",
+    detail: "Staff management and operations",
+    banner:
+      "Monitor rentals, receipts, and system activity across all stations in real time.",
   },
   borrowed: {
-    eyebrow: "Fleet In Use",
+    eyebrow: "Fleet Management",
     title: "Borrowed Bikes",
-    detail: "Track every bike currently out with a rider and close the rental when it comes back.",
+    detail:
+      "Live tracking of currently borrowed bikes, borrower details, rental duration, and return processing.",
   },
   transactions: {
     eyebrow: "Station Desk",
@@ -375,6 +428,51 @@ function EmptyState({
   );
 }
 
+/**
+ * KPI tile used by the borrowed-fleet summary row — label, live value and a
+ * thin progress bar showing the share of the fleet the number represents.
+ */
+function MetricCard({
+  label,
+  badge,
+  badgeClass,
+  value,
+  hint,
+  percent,
+  barClass,
+}: {
+  label: string;
+  badge: string;
+  badgeClass: string;
+  value: string;
+  hint: string;
+  percent: number;
+  barClass: string;
+}) {
+  return (
+    <div className="flex flex-col justify-between rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-sm font-medium text-slate-600">{label}</span>
+        <span
+          className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${badgeClass}`}
+        >
+          {badge}
+        </span>
+      </div>
+      <div className="mt-4">
+        <div className="text-3xl font-bold text-slate-900">{value}</div>
+        <div className="mt-0.5 text-xs text-slate-400">{hint}</div>
+      </div>
+      <div className="mt-4 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+        <div
+          className={`h-1.5 rounded-full ${barClass}`}
+          style={{ width: `${Math.max(0, Math.min(100, percent))}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 function Pill({
   children,
   tone = "slate",
@@ -431,14 +529,24 @@ export interface StaffDashboardProps {
   save: (state: EasyRideState) => void;
   saving: boolean;
   currentUser: EasyRideUser | null;
+  /** Rider directory — used to resolve a borrower's contact number. */
+  users?: EasyRideUser[];
   onSignOut?: () => void;
 }
+
+/** Standard hire window for a borrowed bike (4 hours). */
+const BORROW_WINDOW_MINUTES = 240;
+/** A trip is flagged as "expiring" once it is inside this window of the due time. */
+const EXPIRING_WINDOW_MINUTES = 120;
+/** Bikes listed per page in the borrowed fleet list. */
+const BORROWED_PAGE_SIZE = 6;
 
 export default function StaffDashboard({
   state,
   save,
   saving,
   currentUser,
+  users,
   onSignOut,
 }: StaffDashboardProps) {
   const [section, setSection] = useState<StaffSection>("dashboard");
@@ -446,6 +554,17 @@ export default function StaffDashboard({
   const [stationFilter, setStationFilter] = useState<string>("");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  // Borrowed-fleet filters (kept local to the section so the other views keep
+  // their own station / search selections).
+  const [borrowedQuery, setBorrowedQuery] = useState("");
+  const [borrowedStation, setBorrowedStation] = useState("");
+  const [borrowedCategory, setBorrowedCategory] = useState("");
+  const [borrowedStatus, setBorrowedStatus] = useState<
+    "all" | "expiring" | "overdue"
+  >("all");
+  const [borrowedPage, setBorrowedPage] = useState(1);
+  const [detailId, setDetailId] = useState("");
 
   // A staff account may carry a station id that no longer exists in the fleet
   // configuration. Only pre-filter when it resolves to a real station.
@@ -490,6 +609,33 @@ export default function StaffDashboard({
     () => state.bicycles.filter((b) => !stationFilter || b.stationId === stationFilter),
     [state.bicycles, stationFilter],
   );
+
+  // Hires that came in through the rider app carry their own rate and
+  // contact details, which the shared rental record cannot express.
+  const customerRentals = useMemo(
+    () => readCustomerRentalMeta(),
+    [state.rentals],
+  );
+
+  /** Hourly rate for a hire — rider-app bookings keep their own rate. */
+  const rentalRate = (rental: EasyRideRental) =>
+    customerRentals[rental.id]?.rate ?? state.config.hourlyRate;
+
+  // Pick up hires that were booked on the rider app but never made it into
+  // the shared state (for example a booking taken before the bridge existed).
+  useEffect(() => {
+    const sync = () => {
+      const reconciled = reconcileCustomerRentals(state);
+      if (reconciled !== state) save(reconciled);
+    };
+    sync();
+    window.addEventListener("focus", sync);
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      window.removeEventListener("focus", sync);
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [state, save]);
 
   const riders = useMemo(() => {
     const map = new Map<
@@ -632,7 +778,7 @@ export default function StaffDashboard({
       1,
       Math.ceil((now.getTime() - started.getTime()) / 60000),
     );
-    const amount = Math.ceil(duration / 60) * state.config.hourlyRate;
+    const amount = Math.ceil(duration / 60) * rentalRate(rental);
     const stationName =
       state.stations.find((s) => s.id === rental.pickupStationId)?.name || "Station";
     const note = returnNotes.trim();
@@ -704,6 +850,13 @@ export default function StaffDashboard({
     setReturnId("");
     setReturnCondition("");
     setReturnNotes("");
+
+    // Keep the rider app in step when the station team closes a hire that
+    // was booked from the rider app.
+    if (isCustomerRental(rental.id)) {
+      const meta = customerRentals[rental.id];
+      if (meta?.orderId) releaseCustomerOrder(meta.orderId);
+    }
   };
 
   const logFault = () => {
@@ -769,6 +922,9 @@ export default function StaffDashboard({
     setSection(next);
     setSearch("");
     setDrawerOpen(false);
+    setUserMenuOpen(false);
+    setDetailId("");
+    setBorrowedPage(1);
   };
 
   const stationSelect = (
@@ -800,17 +956,6 @@ export default function StaffDashboard({
           eyebrow={heading.eyebrow}
           title={heading.title}
           detail={heading.detail}
-          side={
-            <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3.5 py-1.5 text-sm shadow-xs">
-              <span className="text-xs font-medium text-slate-500">Logged in as:</span>
-              <span className="font-display text-xs font-semibold text-slate-800">
-                {staffName}
-              </span>
-              <span className="ml-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold tracking-wider text-staff-emerald-dark uppercase">
-                Staff
-              </span>
-            </div>
-          }
         />
 
         {/* Welcome banner */}
@@ -831,7 +976,7 @@ export default function StaffDashboard({
               <p className="text-sm leading-relaxed text-slate-600">
                 Welcome back,{" "}
                 <span className="font-semibold text-slate-800">{staffName}</span>!{" "}
-                {heading.detail}
+                {heading.banner ?? heading.detail}
               </p>
             </div>
             <div className="flex items-center gap-3">
@@ -975,107 +1120,523 @@ export default function StaffDashboard({
 
   const renderBorrowed = () => {
     const heading = SECTION_TITLES.borrowed;
+    const nowMs = Date.now();
+    const dueWindowMs = BORROW_WINDOW_MINUTES * 60_000;
+    const expiringWindowMs = EXPIRING_WINDOW_MINUTES * 60_000;
+
+    // Every bike that is physically out with a rider right now.
+    const fleet = onTripRentals.map((rental) => {
+      const bike = state.bicycles.find((b) => b.id === rental.bicycleId) ?? null;
+      const meta = bike ? getBikeMeta(bike) : null;
+      const station =
+        state.stations.find((s) => s.id === rental.pickupStationId) ?? null;
+      const started = new Date(rental.startedAt);
+      const elapsedMins = Math.max(
+        1,
+        Math.ceil((nowMs - started.getTime()) / 60_000),
+      );
+      const dueAt = new Date(started.getTime() + dueWindowMs);
+      const remainingMs = dueAt.getTime() - nowMs;
+      const status: "active" | "expiring" | "overdue" =
+        remainingMs < 0
+          ? "overdue"
+          : remainingMs <= expiringWindowMs
+            ? "expiring"
+            : "active";
+      const rate = rentalRate(rental);
+      const amountDue = Math.ceil(elapsedMins / 60) * rate;
+      const borrower = users?.find(
+        (u) =>
+          u.name.trim().toLowerCase() === rental.customerName.trim().toLowerCase(),
+      );
+      const customerMeta = customerRentals[rental.id];
+
+      return {
+        rental,
+        bike,
+        meta,
+        station,
+        started,
+        elapsedMins,
+        dueAt,
+        status,
+        rate,
+        amountDue,
+        // Rider-app bikes keep their catalogue model name.
+        modelName: customerMeta?.bikeName ?? meta?.modelName ?? "",
+        phone: borrower?.phone ?? customerMeta?.phone ?? "",
+        bookedOnline: Boolean(customerMeta),
+      };
+    });
+
+    const activeCount = fleet.length;
+    const expiringCount = fleet.filter((f) => f.status === "expiring").length;
+    const overdueCount = fleet.filter((f) => f.status === "overdue").length;
+    const availableCount = availableBikes.length;
+    const totalFleet = state.bicycles.length;
+
+    const share = (part: number, whole: number) =>
+      whole > 0 ? Math.round((part / whole) * 100) : 0;
+
+    const query = borrowedQuery.trim().toLowerCase();
+    const filtered = fleet.filter((f) => {
+      if (borrowedStation && f.rental.pickupStationId !== borrowedStation) {
+        return false;
+      }
+      if (borrowedCategory && f.meta?.type !== borrowedCategory) return false;
+      if (borrowedStatus === "expiring" && f.status !== "expiring") return false;
+      if (borrowedStatus === "overdue" && f.status !== "overdue") return false;
+      if (!query) return true;
+      const haystack = [
+        f.rental.bicycleCode,
+        f.rental.customerName,
+        f.rental.id,
+        f.modelName,
+        f.meta?.type ?? "",
+        f.station?.name ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(query);
+    });
+
+    const totalPages = Math.max(1, Math.ceil(filtered.length / BORROWED_PAGE_SIZE));
+    const page = Math.min(Math.max(1, borrowedPage), totalPages);
+    const paged = filtered.slice(
+      (page - 1) * BORROWED_PAGE_SIZE,
+      page * BORROWED_PAGE_SIZE,
+    );
+
+    const categories = Array.from(
+      new Set(state.bicycles.map((b) => getBikeMeta(b).type)),
+    ).sort();
+
+    const elapsedLabel = (mins: number) =>
+      `${String(Math.floor(mins / 60)).padStart(2, "0")}h ${String(
+        mins % 60,
+      ).padStart(2, "0")}m`;
+
+    const exportFleetLog = () => {
+      const header = [
+        "Bike Code",
+        "Model",
+        "Category",
+        "Borrower",
+        "Contact",
+        "Pickup Depot",
+        "Out At",
+        "Due At",
+        "Elapsed (mins)",
+        "Rate",
+        "Amount Due",
+        "Status",
+      ];
+      const rows = filtered.map((f) => [
+        f.rental.bicycleCode,
+        f.modelName,
+        f.meta?.type ?? "",
+        f.rental.customerName,
+        f.phone,
+        f.station?.name ?? "",
+        f.started.toISOString(),
+        f.dueAt.toISOString(),
+        String(f.elapsedMins),
+        String(f.rate),
+        String(f.amountDue),
+        f.status,
+      ]);
+      const csv = [header, ...rows]
+        .map((row) =>
+          row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(","),
+        )
+        .join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `easyride-fleet-log-${new Date()
+        .toISOString()
+        .slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    const selectClass =
+      "appearance-none cursor-pointer rounded-xl border border-slate-200 bg-slate-50 py-2 pr-8 pl-3 text-xs font-medium text-slate-700 transition-all focus:border-staff-teal focus:bg-white focus:outline-none focus:ring-1 focus:ring-staff-teal";
+    const caretClass =
+      "pointer-events-none absolute top-1/2 right-2.5 -translate-y-1/2 text-slate-400";
 
     return (
-      <div className="space-y-6">
-        <SectionHeading
-          eyebrow={heading.eyebrow}
-          title={heading.title}
-          detail={heading.detail}
-          side={stationSelect}
-        />
+      <div className="space-y-7">
+        {/* Page header + actions */}
+        <section className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+          <div>
+            <nav className="mb-1 flex items-center space-x-2 text-xs font-medium text-slate-400">
+              <span>Fleet Management</span>
+              <span className="text-slate-300">/</span>
+              <span className="font-semibold text-staff-teal">
+                {heading.title}
+              </span>
+            </nav>
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
+              {heading.title}
+            </h1>
+            <p className="mt-1 max-w-2xl text-sm text-slate-500">{heading.detail}</p>
+          </div>
+          <div className="flex shrink-0 items-center space-x-3">
+            <button
+              onClick={exportFleetLog}
+              className="inline-flex cursor-pointer items-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-card transition-all hover:bg-slate-50"
+            >
+              <Glyph name="download" className="mr-2 h-4 w-4 text-slate-500" />
+              Export Fleet Log
+            </button>
+            <button
+              onClick={() => goTo("transactions")}
+              className="inline-flex cursor-pointer items-center rounded-xl bg-staff-teal px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-staff-teal/15 transition-all hover:bg-staff-pine-hover"
+            >
+              <Glyph name="plus" className="mr-2 h-4 w-4 text-white" />
+              + Check Out Bike
+            </button>
+          </div>
+        </section>
 
-        <div className="grid gap-4 lg:grid-cols-3">
-          <StatCard
-            dot="bg-emerald-500 ring-4 ring-emerald-50"
+        {/* KPI summary */}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MetricCard
+            label="Active Borrowed"
             badge="On road"
-            badgeClass="bg-emerald-50 text-emerald-600"
-            value={String(onTripRentals.length)}
-            label="Bikes Out With Riders"
+            badgeClass="border-emerald-200/60 bg-emerald-50 text-emerald-700"
+            value={String(activeCount)}
+            hint="Bikes in use"
+            percent={share(activeCount, totalFleet)}
+            barClass="bg-staff-teal"
           />
-          <StatCard
-            dot="bg-staff-amber"
-            badge="Pending"
-            badgeClass="bg-staff-amber/10 text-amber-600"
-            value={String(holdRequests.length)}
-            label="Awaiting Handover"
+          <MetricCard
+            label="Due Soon (&lt; 2 hrs)"
+            badge="Expiring"
+            badgeClass="border-amber-200/60 bg-amber-50 text-amber-700"
+            value={String(expiringCount)}
+            hint="Approaching limit"
+            percent={share(expiringCount, activeCount)}
+            barClass="bg-amber-500"
           />
-          <StatCard
-            dot="bg-staff-teal"
-            value={money(
-              onTripRentals.reduce((sum, r) => {
-                const mins = Math.max(
-                  1,
-                  Math.ceil(
-                    (Date.now() - new Date(r.startedAt).getTime()) / 60000,
-                  ),
-                );
-                return sum + Math.ceil(mins / 60) * state.config.hourlyRate;
-              }, 0),
-              state.config.currency,
-            ).replace(`${state.config.currency} `, "")}
-            label="Amount Outstanding"
+          <MetricCard
+            label="Overdue Bikes"
+            badge={overdueCount ? "Action needed" : "Clear"}
+            badgeClass={
+              overdueCount
+                ? "border-rose-200/60 bg-rose-50 text-rose-700"
+                : "border-slate-200 bg-slate-100 text-slate-600"
+            }
+            value={String(overdueCount)}
+            hint="Requires recovery"
+            percent={share(overdueCount, activeCount)}
+            barClass="bg-slate-300"
           />
-        </div>
+          <MetricCard
+            label="Available at Stations"
+            badge="Ready"
+            badgeClass="border-emerald-200/60 bg-emerald-50 text-emerald-700"
+            value={String(availableCount)}
+            hint="Ready to borrow"
+            percent={share(availableCount, totalFleet)}
+            barClass="bg-emerald-600"
+          />
+        </section>
 
-        {onTripRentals.length ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            {onTripRentals.map((r) => {
-              const station = state.stations.find((s) => s.id === r.pickupStationId);
-              const started = new Date(r.startedAt);
-              const elapsedMins = Math.max(
-                1,
-                Math.ceil((Date.now() - started.getTime()) / 60000),
-              );
-              const amountDue = Math.ceil(elapsedMins / 60) * state.config.hourlyRate;
+        {/* Filters & controls */}
+        <section className="flex flex-col items-stretch justify-between gap-3 rounded-2xl border border-slate-200/80 bg-white p-3.5 shadow-card lg:flex-row lg:items-center">
+          <div className="flex flex-1 flex-wrap items-center gap-2.5">
+            <div className="relative min-w-[200px] max-w-xs flex-1">
+              <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                <Glyph name="search" className="h-4 w-4" />
+              </span>
+              <input
+                type="search"
+                value={borrowedQuery}
+                onChange={(e) => {
+                  setBorrowedQuery(e.target.value);
+                  setBorrowedPage(1);
+                }}
+                placeholder="Filter active fleet..."
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pr-3 pl-9 text-xs text-slate-800 transition-all placeholder-slate-400 focus:border-staff-teal focus:bg-white focus:outline-none focus:ring-1 focus:ring-staff-teal"
+              />
+            </div>
+
+            <div className="relative">
+              <select
+                value={borrowedStation}
+                onChange={(e) => {
+                  setBorrowedStation(e.target.value);
+                  setBorrowedPage(1);
+                }}
+                aria-label="Filter by station"
+                className={selectClass}
+              >
+                <option value="">Station: All Stations</option>
+                {state.stations.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              <span className={caretClass}>
+                <Glyph name="chevron" className="h-3.5 w-3.5" />
+              </span>
+            </div>
+
+            <div className="relative">
+              <select
+                value={borrowedCategory}
+                onChange={(e) => {
+                  setBorrowedCategory(e.target.value);
+                  setBorrowedPage(1);
+                }}
+                aria-label="Filter by category"
+                className={selectClass}
+              >
+                <option value="">Category: All Types</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </select>
+              <span className={caretClass}>
+                <Glyph name="chevron" className="h-3.5 w-3.5" />
+              </span>
+            </div>
+
+            <div className="relative">
+              <select
+                value={borrowedStatus}
+                onChange={(e) => {
+                  setBorrowedStatus(
+                    e.target.value as "all" | "expiring" | "overdue",
+                  );
+                  setBorrowedPage(1);
+                }}
+                aria-label="Filter by status"
+                className={selectClass}
+              >
+                <option value="all">Status: Active In-Use</option>
+                <option value="expiring">Expiring Soon</option>
+                <option value="overdue">Overdue</option>
+              </select>
+              <span className={caretClass}>
+                <Glyph name="chevron" className="h-3.5 w-3.5" />
+              </span>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center justify-end self-end rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1 lg:self-center">
+            <span className="relative mr-2 flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            </span>
+            <span className="text-xs font-semibold text-slate-700">
+              Live Fleet:{" "}
+              <strong className="font-bold text-staff-teal">
+                {activeCount} Active
+              </strong>
+            </span>
+          </div>
+        </section>
+
+        {/* Borrowed bike cards */}
+        <section className="space-y-4">
+          {paged.length ? (
+            paged.map((f) => {
+              const statusLabel =
+                f.status === "overdue"
+                  ? "Overdue"
+                  : f.status === "expiring"
+                    ? "Due Soon"
+                    : "Borrowed";
+              const statusChip =
+                f.status === "overdue"
+                  ? "bg-rose-100 text-rose-700"
+                  : f.status === "expiring"
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-staff-teal text-white";
+              const dueChip =
+                f.status === "overdue"
+                  ? "border-rose-200/70 bg-rose-50 font-semibold text-rose-700"
+                  : f.status === "expiring"
+                    ? "border-amber-200/70 bg-amber-50 font-semibold text-amber-700"
+                    : "bg-slate-100 font-medium text-slate-600";
 
               return (
-                <Card key={r.id} className="p-5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Pill tone="emerald">Out on road</Pill>
-                        <b className="font-display text-lg font-extrabold text-slate-900">
-                          {r.bicycleCode}
-                        </b>
+                <article
+                  key={f.rental.id}
+                  className="rounded-2xl border border-slate-200/80 bg-white p-5 shadow-card transition-shadow hover:shadow-md lg:p-6"
+                >
+                  <div className="flex flex-col justify-between gap-6 xl:flex-row xl:items-center">
+                    {/* Bike identity & borrower */}
+                    <div className="flex min-w-[280px] shrink-0 items-start space-x-4 xl:w-80">
+                      <div className="h-20 w-28 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-slate-100 shadow-inner">
+                        {f.meta?.image ? (
+                          <img
+                            src={f.meta.image}
+                            alt={f.modelName}
+                            loading="lazy"
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <span className="flex h-full w-full items-center justify-center text-slate-400">
+                            <Glyph name="bike" className="h-6 w-6" />
+                          </span>
+                        )}
                       </div>
-                      <p className="mt-1 text-xs text-slate-600">
-                        Rider: <b className="text-slate-800">{r.customerName}</b>
-                      </p>
-                      <p className="mt-0.5 text-[11px] text-slate-400">
-                        Picked up at: {station?.name || "Unknown station"}
-                      </p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <h2 className="truncate text-base font-bold tracking-tight text-slate-900">
+                            {f.modelName || f.rental.bicycleCode}
+                          </h2>
+                          <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] font-medium text-slate-600">
+                            #{f.rental.bicycleCode}
+                          </span>
+                        </div>
+                        <div className="mt-1 flex items-center gap-1.5">
+                          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                            {f.meta?.type ?? "Bike"}
+                          </span>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusChip}`}
+                          >
+                            {statusLabel}
+                          </span>
+                          {f.bookedOnline ? (
+                            <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[11px] font-semibold text-sky-700">
+                              Rider app
+                            </span>
+                          ) : null}
+                        </div>
+                        <div className="mt-2.5">
+                          <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                            Borrower
+                          </p>
+                          <p className="text-sm font-semibold leading-tight text-slate-800">
+                            {f.rental.customerName}
+                          </p>
+                          <p className="mt-0.5 font-mono text-xs text-slate-500">
+                            {f.phone || `ID · ${f.rental.id}`}
+                          </p>
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="font-mono text-[10px] text-slate-400">TRIP TIME</span>
-                      <p className="text-xs font-extrabold text-slate-800">
-                        {elapsedMins} mins
-                      </p>
+
+                    {/* Depot, time & cost */}
+                    <div className="grid flex-1 grid-cols-1 gap-6 border-t border-slate-100 pt-4 sm:grid-cols-3 xl:border-t-0 xl:pt-0">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                          Pickup Depot
+                        </p>
+                        <p className="mt-1 truncate text-sm font-semibold text-slate-800">
+                          {f.station?.name ?? "Unknown station"}
+                        </p>
+                        <p className="mt-0.5 text-xs text-slate-500">
+                          {f.station?.landmark ?? "—"}
+                        </p>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                          Time Info
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800">
+                          Out: {shortTime(f.started)} Today
+                        </p>
+                        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="text-xs text-slate-500">
+                            Elapsed: {elapsedLabel(f.elapsedMins)}
+                          </span>
+                          <span
+                            className={`inline-flex items-center rounded border px-1.5 py-0.5 text-[11px] ${dueChip}`}
+                          >
+                            Due: {shortTime(f.dueAt)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                          Rate &amp; Cost
+                        </p>
+                        <p className="mt-0.5 text-lg font-bold leading-tight text-staff-teal">
+                          {money(f.amountDue, state.config.currency)}
+                        </p>
+                        <p className="mt-0.5 text-xs font-medium text-slate-500">
+                          Rate: {money(f.rate, state.config.currency)}/hr
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex shrink-0 items-center space-x-2.5 border-t border-slate-100 pt-3 sm:justify-end xl:border-t-0 xl:pt-0">
+                      <button
+                        onClick={() =>
+                          setDetailId(detailId === f.rental.id ? "" : f.rental.id)
+                        }
+                        aria-expanded={detailId === f.rental.id}
+                        className="cursor-pointer whitespace-nowrap rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-semibold text-slate-700 shadow-card transition-all hover:bg-slate-50"
+                      >
+                        View Details
+                      </button>
+                      <button
+                        onClick={() => {
+                          setReturnId(f.rental.id);
+                          setReturnCondition("good");
+                          setReturnNotes("");
+                        }}
+                        className="flex cursor-pointer items-center whitespace-nowrap rounded-xl bg-staff-teal px-4 py-2.5 text-xs font-semibold text-white shadow-card transition-all hover:bg-staff-pine-hover"
+                      >
+                        <Glyph name="check" className="mr-1.5 h-3.5 w-3.5" />
+                        Return Bike
+                      </button>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3">
-                    <div>
-                      <span className="text-[10px] text-slate-400 uppercase">
-                        Amount Due
-                      </span>
-                      <p className="font-display text-base font-extrabold text-slate-900">
-                        {money(amountDue, state.config.currency)}
-                      </p>
+                  {/* Trip detail */}
+                  {detailId === f.rental.id ? (
+                    <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                        {(
+                          [
+                            ["Rental ID", f.rental.id],
+                            ["Bike ID", f.bike?.id ?? "—"],
+                            ["Model", f.modelName || "—"],
+                            ["Category", f.meta?.type ?? "—"],
+                            ["Rider", f.rental.customerName],
+                            ["Contact", f.phone || "Not on file"],
+                            ["Pickup depot", f.station?.name ?? "—"],
+                            ["Depot landmark", f.station?.landmark ?? "—"],
+                            ["Checked out", niceDate(f.rental.startedAt)],
+                            ["Due back", niceDate(f.dueAt.toISOString())],
+                            ["Elapsed", elapsedLabel(f.elapsedMins)],
+                            ["Amount due", money(f.amountDue, state.config.currency)],
+                            ["Hourly rate", money(f.rate, state.config.currency)],
+                            ["Payment", textCase(f.rental.paymentStatus)],
+                            ["Bike condition", textCase(f.bike?.condition ?? "unknown")],
+                            ["Last checked", niceDate(f.bike?.lastChecked)],
+                          ] as [string, string][]
+                        ).map(([label, value]) => (
+                          <div key={label}>
+                            <span className="block text-[10px] font-bold tracking-wider text-slate-400 uppercase">
+                              {label}
+                            </span>
+                            <span className="mt-0.5 block truncate text-xs font-semibold text-slate-800">
+                              {value}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => {
-                        setReturnId(r.id);
-                        setReturnCondition("good");
-                        setReturnNotes("");
-                      }}
-                      className={primaryButton}
-                    >
-                      Take Bike Back &amp; Close
-                    </button>
-                  </div>
+                  ) : null}
 
-                  {returnId === r.id ? (
+                  {/* Return & close */}
+                  {returnId === f.rental.id ? (
                     <div className="mt-4 rounded-xl border border-staff-teal/15 bg-staff-teal/5 p-4">
                       <h5 className="text-xs font-bold text-slate-800">
                         Verify Condition &amp; Close
@@ -1105,7 +1666,7 @@ export default function StaffDashboard({
                             className={inputClass}
                           >
                             <option value="paid">
-                              Paid ({money(amountDue, state.config.currency)})
+                              Paid ({money(f.amountDue, state.config.currency)})
                             </option>
                             <option value="pending">Pending Collection</option>
                           </select>
@@ -1125,7 +1686,7 @@ export default function StaffDashboard({
                       </div>
 
                       <div className="mt-3 flex gap-2">
-                        <button onClick={() => closeRental(r)} className={`${primaryButton} flex-1`}>
+                        <button onClick={() => closeRental(f.rental)} className={`${primaryButton} flex-1`}>
                           Close Rental &amp; Record
                         </button>
                         <button onClick={() => setReturnId("")} className={secondaryButton}>
@@ -1134,17 +1695,58 @@ export default function StaffDashboard({
                       </div>
                     </div>
                   ) : null}
-                </Card>
+                </article>
               );
-            })}
+            })
+          ) : (
+            <EmptyState
+              icon="bike"
+              title="No borrowed bikes match these filters"
+              detail="Adjust the search, station, category or status filters to see bikes that are currently out with riders."
+            />
+          )}
+        </section>
+
+        {/* Pagination */}
+        <footer className="flex items-center justify-between rounded-2xl border border-slate-200/80 bg-white px-5 py-4 shadow-card">
+          <p className="text-xs text-slate-500">
+            Showing <span className="font-bold text-slate-800">{filtered.length}</span>{" "}
+            of <span className="font-bold text-slate-800">{activeCount}</span>{" "}
+            active borrowed bikes
+          </p>
+          <div className="flex items-center space-x-1.5">
+            <button
+              onClick={() => setBorrowedPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              aria-label="Previous page"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Glyph name="chevronLeft" className="h-4 w-4" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+              <button
+                key={n}
+                onClick={() => setBorrowedPage(n)}
+                aria-label={`Page ${n}`}
+                className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-xs font-bold transition-colors ${
+                  n === page
+                    ? "bg-staff-teal text-white shadow-card"
+                    : "border border-slate-200 bg-white text-slate-400 hover:bg-slate-50"
+                }`}
+              >
+                {n}
+              </button>
+            ))}
+            <button
+              onClick={() => setBorrowedPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              aria-label="Next page"
+              className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-400 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Glyph name="arrowRight" className="h-4 w-4" />
+            </button>
           </div>
-        ) : (
-          <EmptyState
-            icon="bike"
-            title="No bikes are out with riders"
-            detail="When a bike is checked out it appears here with its live trip time and the amount due."
-          />
-        )}
+        </footer>
       </div>
     );
   };
@@ -2140,110 +2742,107 @@ export default function StaffDashboard({
 
   const sidebar = (
     <>
-      <div className="flex flex-col h-full overflow-y-auto px-5 py-6 space-y-6">
-        {/* Brand */}
-        <div className="flex items-center gap-3 px-2">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-staff-teal text-white shadow-sm ring-1 ring-emerald-400/20">
-            <Glyph name="bike" className="h-6 w-6" />
+      {/* Brand header */}
+      <div className="flex items-center justify-between border-b border-slate-100 p-6">
+        <div className="flex items-center space-x-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-staff-teal text-white shadow-md shadow-staff-teal/10">
+            <Glyph name="logo" className="h-6 w-6" />
           </div>
           <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-display text-xl font-extrabold leading-none tracking-tight text-slate-900">
-                Easy<span className="font-black text-staff-teal">Ride</span>
-              </span>
-            </div>
-            <span className="text-[11px] font-medium tracking-wide text-slate-400 uppercase">
+            <span className="block text-xl font-bold tracking-tight text-slate-900">
+              EasyRide
+            </span>
+            <p className="text-[10px] font-semibold tracking-wider text-slate-400 uppercase">
               Management System
-            </span>
+            </p>
           </div>
-        </div>
-
-        {/* Current user card */}
-        <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 p-3.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-staff-teal/15 bg-staff-teal/10 font-display text-sm font-bold text-staff-teal shadow-xs">
-            {staffInitials}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h4 className="truncate font-display text-sm font-semibold leading-tight text-slate-900">
-              {staffName}
-            </h4>
-            <div className="mt-1 flex items-center">
-              <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold tracking-wider text-staff-emerald-dark uppercase">
-                Staff
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <div className="space-y-1">
-          <div className="px-2 mb-2">
-            <span className="font-sans text-[10.5px] font-bold tracking-wider text-slate-400 uppercase">
-              Main Navigation
-            </span>
-          </div>
-          <nav aria-label="Sidebar" className="space-y-1">
-            {NAV_ITEMS.map((item) => {
-              const active = section === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => goTo(item.id)}
-                  aria-current={active ? "page" : undefined}
-                  className={`group flex w-full items-start gap-3.5 rounded-xl px-3.5 py-2.5 text-left transition-all duration-150 cursor-pointer ${
-                    active
-                      ? "bg-staff-teal text-white shadow-sm"
-                      : "text-slate-600 hover:bg-slate-100/70 hover:text-slate-900"
-                  }`}
-                >
-                  <Glyph
-                    name={item.icon}
-                    className={`mt-0.5 h-5 w-5 shrink-0 transition-colors ${
-                      active
-                        ? "text-white/90"
-                        : "text-slate-400 group-hover:text-staff-teal"
-                    }`}
-                  />
-                  <span className="flex flex-col">
-                    <span
-                      className={`font-display text-sm ${
-                        active
-                          ? "font-semibold tracking-wide text-white"
-                          : "font-medium text-slate-700 group-hover:text-slate-900"
-                      }`}
-                    >
-                      {item.title}
-                    </span>
-                    <span
-                      className={`text-[11px] font-normal ${
-                        active ? "text-white/70" : "text-slate-400 group-hover:text-slate-500"
-                      }`}
-                    >
-                      {item.subtitle}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-          </nav>
         </div>
       </div>
 
+      {/* Staff profile badge */}
+      <div className="mx-4 my-4 flex items-center space-x-3.5 rounded-2xl border border-slate-100 bg-slate-50 p-4">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-staff-teal-soft text-sm font-bold tracking-wide text-staff-teal">
+          {staffInitials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center justify-between">
+            <p className="truncate text-sm font-semibold text-slate-900">
+              {staffName}
+            </p>
+          </div>
+          <div className="mt-0.5">
+            <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+              Staff
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation */}
+      <nav aria-label="Sidebar" className="flex-1 space-y-1.5 overflow-y-auto px-4 pb-4">
+        <div className="px-3 pt-2 pb-1 text-[11px] font-bold tracking-wider text-slate-400 uppercase">
+          Main Navigation
+        </div>
+        {NAV_ITEMS.map((item) => {
+          const active = section === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => goTo(item.id)}
+              aria-current={active ? "page" : undefined}
+              className={`group flex w-full cursor-pointer items-start rounded-xl px-3.5 py-2.5 text-left transition-all duration-150 ${
+                active
+                  ? "bg-staff-teal text-white shadow-sm shadow-staff-teal/20"
+                  : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+              }`}
+            >
+              <Glyph
+                name={item.icon}
+                className={`mt-0.5 mr-3 h-5 w-5 shrink-0 transition-colors ${
+                  active
+                    ? "text-white/90"
+                    : "text-slate-400 group-hover:text-slate-600"
+                }`}
+              />
+              <span className="flex flex-col">
+                <span
+                  className={`text-sm ${
+                    active
+                      ? "font-semibold tracking-wide text-white"
+                      : "font-medium text-slate-700 group-hover:text-slate-900"
+                  }`}
+                >
+                  {item.title}
+                </span>
+                <span
+                  className={`text-xs font-normal ${
+                    active
+                      ? "text-staff-teal-soft/75"
+                      : "text-slate-400 group-hover:text-slate-500"
+                  }`}
+                >
+                  {item.subtitle}
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </nav>
+
       {/* Sidebar footer */}
-      <div className="flex items-center justify-between border-t border-slate-100 bg-slate-50/50 px-5 py-4 text-xs text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-          {assignedStation?.name || "Main Hub"} · Makerere
+      <div className="mx-4 my-3 flex items-center justify-between border-t border-slate-100 p-4 text-xs text-slate-400">
+        <span>{assignedStation?.name || "Main Hub"} · Makerere</span>
+        <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[10px] text-slate-500">
+          v2.4
         </span>
-        <span className="font-mono text-[10px]">v2.4</span>
       </div>
     </>
   );
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-staff-surface text-slate-800">
+    <div className="flex h-[100dvh] overflow-hidden bg-staff-surface font-display text-slate-800">
       {/* Desktop sidebar */}
-      <aside className="z-30 hidden w-72 flex-shrink-0 select-none flex-col justify-between border-r border-slate-200/90 bg-white lg:flex">
+      <aside className="z-30 hidden w-72 shrink-0 select-none flex-col border-r border-slate-200/90 bg-white lg:flex">
         {sidebar}
       </aside>
 
@@ -2254,7 +2853,7 @@ export default function StaffDashboard({
             className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
             onClick={() => setDrawerOpen(false)}
           />
-          <aside className="relative z-10 flex w-72 flex-shrink-0 flex-col justify-between border-r border-slate-200/90 bg-white">
+          <aside className="relative z-10 flex w-72 shrink-0 flex-col border-r border-slate-200/90 bg-white">
             {sidebar}
           </aside>
         </div>
@@ -2263,48 +2862,56 @@ export default function StaffDashboard({
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col overflow-y-auto">
         {/* Top header */}
-        <header className="sticky top-0 z-20 flex h-18 items-center justify-between gap-4 border-b border-slate-200/80 bg-white/95 px-4 py-3.5 backdrop-blur sm:px-8">
+        <header className="sticky top-0 z-20 flex h-18 shrink-0 items-center justify-between gap-4 border-b border-slate-200/90 bg-white/95 px-6 py-3.5 backdrop-blur-md lg:px-10">
           <button
             onClick={() => setDrawerOpen(true)}
             aria-label="Open navigation"
-            className="rounded-xl border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50 lg:hidden cursor-pointer"
+            className="cursor-pointer rounded-xl border border-slate-200 p-2.5 text-slate-500 transition hover:bg-slate-50 lg:hidden"
           >
             <Glyph name="menu" className="h-5 w-5" />
           </button>
 
           <div className="relative min-w-0 flex-1 max-w-lg">
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+            <span className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
               <Glyph name="search" className="h-4 w-4" />
-            </div>
+            </span>
             <input
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search bikes, models, locations..."
-              className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2 pr-4 pl-10 text-sm transition-all duration-150 placeholder-slate-400 focus:border-staff-teal focus:bg-white focus:outline-none focus:ring-2 focus:ring-staff-teal/20"
+              placeholder="Search bikes, models, borrower name, bike ID..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-2 pr-4 pl-10 text-sm text-slate-800 transition-all duration-150 placeholder-slate-400 focus:border-staff-teal focus:bg-white focus:outline-none focus:ring-2 focus:ring-staff-teal/10"
             />
           </div>
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center space-x-5 pl-4">
+            <div className="hidden items-center space-x-2 text-sm text-slate-500 sm:flex">
+              <span>Logged in as:</span>
+              <span className="font-semibold text-slate-800">{staffName}</span>
+              <span className="inline-flex items-center rounded px-2 py-0.5 text-[10px] font-semibold tracking-wider text-emerald-800 uppercase bg-emerald-100">
+                Staff
+              </span>
+            </div>
+            <div className="hidden h-5 w-px bg-slate-200 sm:block" />
+
             <button
               aria-label="Notifications"
-              className="relative rounded-xl border border-slate-200 p-2.5 text-slate-500 transition-colors hover:border-slate-300 hover:bg-slate-50 hover:text-staff-teal cursor-pointer"
+              title="Notifications"
+              className="relative cursor-pointer rounded-xl p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-staff-teal"
             >
               <Glyph name="bell" className="h-5 w-5" />
               {pendingPaymentRentals.length ? (
-                <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-amber-500 ring-2 ring-white" />
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-staff-amber ring-2 ring-white" />
               ) : null}
             </button>
 
             <div className="relative">
               <button
                 onClick={() => setUserMenuOpen((v) => !v)}
-                className="flex items-center gap-2.5 rounded-xl border border-slate-200 p-1.5 pl-2.5 transition-colors hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+                aria-label="Account menu"
+                className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full bg-staff-teal text-xs font-bold text-white shadow-sm ring-2 ring-slate-100"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-staff-teal text-xs font-semibold text-white">
-                  {staffInitials}
-                </span>
-                <Glyph name="chevron" className="mr-1 h-4 w-4 text-slate-400" />
+                {staffInitials}
               </button>
 
               {userMenuOpen ? (
@@ -2321,11 +2928,18 @@ export default function StaffDashboard({
                       </p>
                     </div>
                     <button
+                      onClick={() => goTo("settings")}
+                      className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                    >
+                      <Glyph name="sliders" className="h-4 w-4 text-slate-400" />
+                      Pricing &amp; Station Settings
+                    </button>
+                    <button
                       onClick={() => {
                         setUserMenuOpen(false);
                         onSignOut?.();
                       }}
-                      className="w-full px-4 py-2.5 text-left text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 cursor-pointer"
+                      className="w-full cursor-pointer px-4 py-2.5 text-left text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
                     >
                       Sign out
                     </button>
@@ -2337,7 +2951,7 @@ export default function StaffDashboard({
         </header>
 
         {/* Page content */}
-        <main className="w-full max-w-[1400px] flex-1 space-y-6 p-5 sm:p-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 space-y-7 p-6 lg:p-10">
           {renderSection()}
         </main>
       </div>

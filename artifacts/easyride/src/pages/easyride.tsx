@@ -16,7 +16,7 @@ import { AuthCard, AuthModal } from "@/components/auth-modal";
 import { CustomerView } from "@/components/customer-view";
 import StaffDashboard from "@/components/staff-dashboard";
 import { getBikeMeta } from "@/lib/mock-data";
-import { money, niceDate, textCase, uid, when } from "@/lib/format";
+import { money } from "@/lib/format";
 
 
 function BikeSketch({ className = "" }: { className?: string }) {
@@ -891,6 +891,8 @@ function GuestDashboard({
 // 2. USER / RIDER DASHBOARD (/rider)
 // ---------------------------------------------------------------------------
 function RiderDashboard({
+  state,
+  save,
   currentUser,
   onSignOut,
 }: {
@@ -904,6 +906,8 @@ function RiderDashboard({
   const [, navigate] = useLocation();
   return (
     <CustomerView
+      state={state}
+      save={save}
       currentUser={currentUser}
       onSignOut={onSignOut}
       onBackToGuest={() => navigate("/")}
@@ -1024,6 +1028,7 @@ export default function EasyRidePage() {
           save={save}
           saving={saving}
           currentUser={activeUser}
+          users={auth.users}
           onSignOut={handleSignOut}
         />
       );
@@ -1116,6 +1121,33 @@ export default function EasyRidePage() {
     return (
       <div className="min-h-screen bg-[#f6f9f8] text-slate-800 font-sans antialiased selection:bg-brand-mint selection:text-white">
         {page}
+        <AuthModal
+          open={authModalOpen}
+          initialMode={authModalMode}
+          initialRole={authModalRole}
+          stations={state?.stations || []}
+          auth={auth}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={handleAuthSuccess}
+        />
+      </div>
+    );
+  }
+
+  // The staff console is a self-contained console shell (fixed sidebar + top
+  // header), so it must not be wrapped in the public site's topbar/footer.
+  // Only real staff get the console shell — riders hitting /staff keep the
+  // public shell so the "Access Restricted" screen can still navigate away.
+  if (isStaffPath && activeUser?.role === "staff") {
+    return (
+      <div className="min-h-[100dvh] bg-staff-surface font-display antialiased text-slate-800">
+        {loading ? (
+          <SkeletonPage />
+        ) : error || !state ? (
+          <MissingState error={error} retry={retry} />
+        ) : (
+          page
+        )}
         <AuthModal
           open={authModalOpen}
           initialMode={authModalMode}

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { EasyRideState } from "@workspace/api-client-react";
 import { initialEasyRideState } from "@/lib/mock-data";
+import { reconcileCustomerRentals } from "@/lib/customer-bridge";
 
 const STORAGE_KEY = "easyride_state_frontend_v3";
 
@@ -47,6 +48,15 @@ export function useEasyRide() {
     } finally {
       setTimeout(() => setSaving(false), 200);
     }
+  }, []);
+
+  // A hire booked on the rider app is mirrored into the shared state, but a
+  // booking made before that bridge existed would stay invisible to the
+  // station team. Re-create anything the rider app still has open.
+  useEffect(() => {
+    const reconciled = reconcileCustomerRentals(state);
+    if (reconciled !== state) save(reconciled);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const retry = useCallback(() => {

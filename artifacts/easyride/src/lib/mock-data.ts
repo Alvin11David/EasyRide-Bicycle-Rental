@@ -177,6 +177,32 @@ export const bikeMetadata: Record<string, BikeMeta> = {
     image: "/bikes/bike-3.jpg",
     specs: { gears: "16-speed microSHIFT", weight: "11.9 kg", highlight: "Stealth Lefty rigid fork styling" },
   },
+
+  // Bikes that are currently out on hire or in the workshop
+  "bike-elec-rented": {
+    modelName: "Trek FX+ 3 E-Bike",
+    type: "Electric",
+    image: "/bikes/bike-1.jpg",
+    specs: { range: "65 km", speed: "32 km/h", power: "250W", highlight: "Long-range pedal assist" },
+  },
+  "bike-mtn-rented": {
+    modelName: "Trek Marlin 7 Gen 3",
+    type: "Mountain",
+    image: "/bikes/bike-2.jpg",
+    specs: { gears: "10-speed Deore", weight: "13.8 kg", highlight: "RockShox Judy fork lockout" },
+  },
+  "bike-city-maint": {
+    modelName: "Giant Escape 3 City",
+    type: "City",
+    image: "/bikes/bike-4.jpg",
+    specs: { gears: "21-speed Shimano", weight: "12.1 kg", highlight: "Upright geometry & mudguards" },
+  },
+  "bike-race-maint": {
+    modelName: "Specialized Tarmac SL7",
+    type: "Racing",
+    image: "/bikes/bike-4.jpg",
+    specs: { gears: "22-speed 105 Di2", weight: "7.9 kg", highlight: "Full carbon aerodynamic frame" },
+  },
 };
 
 export function getBikeMeta(bike: EasyRideBicycle, index = 0): BikeMeta {
