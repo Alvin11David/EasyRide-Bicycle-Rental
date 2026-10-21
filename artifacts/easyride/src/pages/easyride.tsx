@@ -100,34 +100,50 @@ function Topbar({
   const isStaff = activePath === "/staff" || activePath === "/operator";
   const isGuest = !isRider && !isStaff;
 
-  const links = [
-    { href: "/", label: "Guest / Home", active: isGuest },
-    { href: "/rider", label: "Rider Dashboard", active: isRider },
-    { href: "/staff", label: "Staff Dashboard", active: isStaff },
-  ];
+  const links = useMemo(() => {
+    if (!currentUser) {
+      // Unauthenticated Guest: only public Explore / Home link
+      return [
+        { href: "/", label: "Explore Fleet", active: isGuest, icon: Compass },
+      ];
+    }
+    if (currentUser.role === "rider") {
+      // Customer: Home and My Rider Dashboard
+      return [
+        { href: "/", label: "Explore Fleet", active: isGuest, icon: Compass },
+        { href: "/rider", label: "My Rider Dashboard", active: isRider, icon: User },
+      ];
+    }
+    // Station Worker: Home and Staff Station Desk
+    return [
+      { href: "/", label: "Fleet Overview", active: isGuest, icon: Compass },
+      { href: "/staff", label: "Staff Station Desk", active: isStaff, icon: Wrench },
+    ];
+  }, [currentUser, isGuest, isRider, isStaff]);
 
   return (
     <header className="bg-white/90 backdrop-blur-md border-b border-teal-900/10 sticky top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         <Logo />
         <nav className="hidden items-center gap-1.5 md:flex" aria-label="Main navigation">
-          {links.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              data-testid={`link-nav-${item.href === "/" ? "home" : item.href.slice(1)}`}
-              className={`nav-link rounded-xl px-4 py-2 text-xs font-bold transition no-underline flex items-center gap-1.5 ${
-                item.active
-                  ? "bg-teal-800 text-white shadow-sm shadow-teal-900/20"
-                  : "text-slate-600 hover:text-teal-900 hover:bg-slate-50"
-              }`}
-            >
-              {item.href === "/rider" && <User size={13} />}
-              {item.href === "/staff" && <Wrench size={13} />}
-              {item.href === "/" && <Compass size={13} />}
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {links.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                data-testid={`link-nav-${item.href === "/" ? "home" : item.href.slice(1)}`}
+                className={`nav-link rounded-xl px-4 py-2 text-xs font-bold transition no-underline flex items-center gap-1.5 ${
+                  item.active
+                    ? "bg-teal-800 text-white shadow-sm shadow-teal-900/20"
+                    : "text-slate-600 hover:text-teal-900 hover:bg-slate-50"
+                }`}
+              >
+                <Icon size={13} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
         </nav>
 
         {/* User Account & Role Area */}
@@ -286,21 +302,22 @@ function Topbar({
             </div>
           )}
 
-          {links.map((item) => (
-            <Link
-              key={item.href}
-              onClick={() => setOpen(false)}
-              href={item.href}
-              className={`rounded-xl px-3.5 py-2.5 text-xs font-bold no-underline flex items-center gap-2 ${
-                item.active ? "bg-teal-800 text-white" : "text-teal-950 hover:bg-slate-50"
-              }`}
-            >
-              {item.href === "/rider" && <User size={14} />}
-              {item.href === "/staff" && <Wrench size={14} />}
-              {item.href === "/" && <Compass size={14} />}
-              <span>{item.label}</span>
-            </Link>
-          ))}
+          {links.map((item) => {
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.href}
+                onClick={() => setOpen(false)}
+                href={item.href}
+                className={`rounded-xl px-3.5 py-2.5 text-xs font-bold no-underline flex items-center gap-2 ${
+                  item.active ? "bg-teal-800 text-white" : "text-teal-950 hover:bg-slate-50"
+                }`}
+              >
+                <Icon size={14} />
+                <span>{item.label}</span>
+              </Link>
+            );
+          })}
 
           {!currentUser && (
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-1">
@@ -2706,7 +2723,60 @@ export default function EasyRidePage() {
 
   const page = useMemo(() => {
     if (!state || loading || error) return null;
+
+    // Staff route protection
     if (isStaffPath) {
+      if (!auth.currentUser) {
+        return (
+          <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
+            <div className="mb-6 p-5 rounded-3xl bg-amber-50 border border-amber-200 text-center w-full shadow-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold mb-2">
+                <Lock size={13} /> Station Worker Sign In Required
+              </span>
+              <h2 className="text-xl font-extrabold text-amber-950">Staff Operations Desk</h2>
+              <p className="text-xs text-slate-600 mt-1.5">
+                Please sign in with your station staff account to inspect roadworthiness, handoff bikes, close returns, and manage quarantine.
+              </p>
+            </div>
+            <AuthCard
+              initialMode="signin"
+              initialRole="staff"
+              stations={state.stations}
+              auth={auth}
+              onSuccess={handleAuthSuccess}
+            />
+          </main>
+        );
+      }
+
+      if (auth.currentUser.role !== "staff") {
+        return (
+          <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
+            <div className="mb-6 p-6 rounded-3xl bg-rose-50 border border-rose-200 text-center w-full shadow-sm">
+              <ShieldAlert size={38} className="text-rose-600 mx-auto mb-2" />
+              <h2 className="text-xl font-extrabold text-rose-950">Access Restricted to Staff</h2>
+              <p className="text-xs text-rose-800 mt-2 mb-5 leading-5">
+                You are currently signed in as a Customer / Rider (<b>{auth.currentUser.name}</b>). Station worker tools and safety certifications are restricted to Staff accounts.
+              </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
+                <button
+                  onClick={() => handleQuickDemoLogin("staff")}
+                  className="w-full sm:w-auto btn-primary py-2.5 px-4 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  ⚡ Switch to Staff (Sarah Nabirye)
+                </button>
+                <button
+                  onClick={() => navigate("/rider")}
+                  className="w-full sm:w-auto bg-white border border-rose-300 text-rose-900 py-2.5 px-4 text-xs font-bold rounded-xl hover:bg-rose-50 cursor-pointer"
+                >
+                  Go to My Rider Dashboard
+                </button>
+              </div>
+            </div>
+          </main>
+        );
+      }
+
       return (
         <StaffDashboard
           state={state}
@@ -2718,7 +2788,32 @@ export default function EasyRidePage() {
         />
       );
     }
+
+    // Rider route protection
     if (isRiderPath) {
+      if (!auth.currentUser) {
+        return (
+          <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
+            <div className="mb-6 p-5 rounded-3xl bg-teal-50 border border-teal-200 text-center w-full shadow-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100 text-teal-900 text-xs font-bold mb-2">
+                <User size={13} /> Customer Sign In Required
+              </span>
+              <h2 className="text-xl font-extrabold text-teal-950">Rider Dashboard Access</h2>
+              <p className="text-xs text-slate-600 mt-1.5">
+                Please sign in or create a Rider account to reserve bikes, track active rides, and see what you owe upon return.
+              </p>
+            </div>
+            <AuthCard
+              initialMode="signin"
+              initialRole="rider"
+              stations={state.stations}
+              auth={auth}
+              onSuccess={handleAuthSuccess}
+            />
+          </main>
+        );
+      }
+
       return (
         <RiderDashboard
           state={state}
@@ -2729,6 +2824,8 @@ export default function EasyRidePage() {
         />
       );
     }
+
+    // Public Guest Dashboard
     return (
       <GuestDashboard
         state={state}
@@ -2762,6 +2859,7 @@ export default function EasyRidePage() {
             <AuthCard
               initialMode={authInitialMode}
               stations={state?.stations || []}
+              auth={auth}
               onSuccess={handleAuthSuccess}
             />
           </main>
@@ -2800,6 +2898,7 @@ export default function EasyRidePage() {
         initialMode={authModalMode}
         initialRole={authModalRole}
         stations={state?.stations || []}
+        auth={auth}
         onClose={() => setAuthModalOpen(false)}
         onSuccess={handleAuthSuccess}
       />

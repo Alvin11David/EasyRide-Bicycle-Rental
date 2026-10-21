@@ -23,6 +23,7 @@ interface AuthProps {
   initialMode?: "signin" | "signup";
   initialRole?: UserRole;
   stations?: EasyRideStation[];
+  auth?: ReturnType<typeof useAuth>;
   onSuccess?: (user: EasyRideUser) => void;
   onClose?: () => void;
 }
@@ -31,10 +32,12 @@ export function AuthCard({
   initialMode = "signin",
   initialRole = "rider",
   stations = [],
+  auth: propAuth,
   onSuccess,
   onClose,
 }: AuthProps) {
-  const { signin, signup, quickDemoLogin } = useAuth();
+  const localAuth = useAuth();
+  const { signin, signup, quickDemoLogin } = propAuth || localAuth;
   const [mode, setMode] = useState<"signin" | "signup">(initialMode);
   const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
 
@@ -72,7 +75,7 @@ export function AuthCard({
     setSuccessMessage(`Welcome back, ${result.user.name}! Redirecting...`);
     setTimeout(() => {
       onSuccess?.(result.user!);
-    }, 600);
+    }, 200);
   };
 
   const handleSignUp = (e: React.FormEvent) => {
@@ -103,7 +106,7 @@ export function AuthCard({
     setSuccessMessage(`Account created for ${result.user.name}! Redirecting to dashboard...`);
     setTimeout(() => {
       onSuccess?.(result.user!);
-    }, 700);
+    }, 200);
   };
 
   const handleDemoLogin = (role: UserRole) => {
@@ -113,7 +116,7 @@ export function AuthCard({
       setSuccessMessage(`Signed in as ${user.name} (${role === "staff" ? "Staff" : "Rider"})! Redirecting...`);
       setTimeout(() => {
         onSuccess?.(user);
-      }, 500);
+      }, 200);
     }
   };
 
@@ -490,6 +493,7 @@ export function AuthModal({
   initialMode = "signin",
   initialRole = "rider",
   stations = [],
+  auth,
   onClose,
   onSuccess,
 }: {
@@ -497,6 +501,7 @@ export function AuthModal({
   initialMode?: "signin" | "signup";
   initialRole?: UserRole;
   stations?: EasyRideStation[];
+  auth?: ReturnType<typeof useAuth>;
   onClose: () => void;
   onSuccess?: (user: EasyRideUser) => void;
 }) {
@@ -508,6 +513,7 @@ export function AuthModal({
         initialMode={initialMode}
         initialRole={initialRole}
         stations={stations}
+        auth={auth}
         onClose={onClose}
         onSuccess={(user) => {
           onClose();
