@@ -1,17 +1,19 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
-  Activity, AlertTriangle, ArrowDownLeft, ArrowRight, ArrowUpRight, Bike, Building2,
-  CheckCircle2, ChevronLeft, ChevronRight, CircleAlert, Clock3, Compass,
-  CreditCard, Flame, Gauge, Hand, Info, Lock, MapPin, Menu, Mountain, Plus,
+  Activity, AlertTriangle, ArrowDownLeft, ArrowLeft, ArrowRight, ArrowUpRight, Bike, Building2,
+  Check, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Compass,
+  CreditCard, Flame, Gauge, Hand, Info, Lock, LogIn, LogOut, MapPin, Menu, Mountain, Plus,
   RefreshCw, Search, Settings2, ShieldAlert, ShieldCheck, Shuffle, Sparkles,
-  User, Users, Wrench, X, Zap,
+  User, UserCheck, UserPlus, Users, Wrench, X, Zap,
 } from "lucide-react";
 import type {
   EasyRideActivity, EasyRideBicycle, EasyRideMaintenance, EasyRideRental, EasyRideState,
   EasyRideStation,
 } from "@workspace/api-client-react";
 import { useEasyRide } from "@/hooks/use-easyride";
+import { useAuth, type EasyRideUser, type UserRole, DEFAULT_USERS } from "@/hooks/use-auth";
+import { AuthCard, AuthModal } from "@/components/auth-modal";
 import { getBikeMeta } from "@/lib/mock-data";
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -79,12 +81,21 @@ const bikeCategories = [
 
 function Topbar({
   activePath,
+  currentUser,
   onOpenRoleModal,
+  onOpenAuthModal,
+  onSignOut,
+  onQuickDemoLogin,
 }: {
   activePath: string;
+  currentUser: EasyRideUser | null;
   onOpenRoleModal: () => void;
+  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onSignOut: () => void;
+  onQuickDemoLogin: (role: UserRole) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const isRider = activePath === "/rider" || activePath === "/rentals";
   const isStaff = activePath === "/staff" || activePath === "/operator";
   const isGuest = !isRider && !isStaff;
@@ -96,7 +107,7 @@ function Topbar({
   ];
 
   return (
-    <header className="bg-white/85 backdrop-blur-md border-b border-teal-900/10 sticky top-0 z-50">
+    <header className="bg-white/90 backdrop-blur-md border-b border-teal-900/10 sticky top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         <Logo />
         <nav className="hidden items-center gap-1.5 md:flex" aria-label="Main navigation">
@@ -119,27 +130,122 @@ function Topbar({
           ))}
         </nav>
 
-        {/* Current Active Mode indicator */}
+        {/* User Account & Role Area */}
         <div className="hidden items-center gap-3 sm:flex">
-          <button
-            onClick={onOpenRoleModal}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold border border-slate-200/90 bg-slate-50 hover:bg-teal-50 hover:border-teal-300 text-teal-900 transition cursor-pointer shadow-2xs"
-            title="Click to view user roles & capabilities"
-            data-testid="button-switch-role"
-          >
-            <span className={`w-2 h-2 rounded-full ${isStaff ? "bg-amber-500" : isRider ? "bg-emerald-500" : "bg-teal-600"} animate-pulse`}></span>
-            <span>
-              {isStaff ? "Staff Mode (Station Worker)" : isRider ? "Rider Mode (Customer)" : "Guest Explorer"}
-            </span>
-            <span className="text-[10px] text-slate-400 font-normal">Info ▾</span>
-          </button>
-          <div className="w-9 h-9 rounded-xl overflow-hidden border border-slate-200 shadow-sm">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-              alt="Avatar"
-              className="w-full h-full object-cover"
-            />
-          </div>
+          {currentUser ? (
+            <div className="relative">
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border border-slate-200/90 bg-white hover:border-teal-300 transition cursor-pointer shadow-2xs"
+                  data-testid="button-user-profile"
+                >
+                  <div className="w-7 h-7 rounded-full overflow-hidden bg-teal-800 text-white flex items-center justify-center text-xs font-bold shrink-0">
+                    {currentUser.avatar ? (
+                      <img src={currentUser.avatar} alt={currentUser.name} className="w-full h-full object-cover" />
+                    ) : (
+                      currentUser.name.slice(0, 2).toUpperCase()
+                    )}
+                  </div>
+                  <div className="text-left">
+                    <span className="block text-xs font-bold text-slate-800 leading-tight">
+                      {currentUser.name}
+                    </span>
+                    <span className="block text-[10px] font-semibold text-slate-400">
+                      {currentUser.role === "staff" ? "Station Worker" : "Rider"}
+                    </span>
+                  </div>
+                  <Tag tone={currentUser.role === "staff" ? "amber" : "green"}>
+                    {currentUser.role === "staff" ? "Staff" : "Rider"}
+                  </Tag>
+                  <ChevronDown size={13} className="text-slate-400" />
+                </button>
+
+                <button
+                  onClick={onSignOut}
+                  title="Sign Out"
+                  className="p-2 text-slate-400 hover:text-rose-600 rounded-xl hover:bg-rose-50 transition cursor-pointer"
+                  data-testid="button-signout"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+
+              {/* User Dropdown */}
+              {userMenuOpen && (
+                <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white p-2 shadow-xl border border-slate-100 z-50 enter">
+                  <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                    <p className="text-xs font-bold text-slate-800">{currentUser.name}</p>
+                    <p className="text-[11px] text-slate-400 truncate">{currentUser.email}</p>
+                  </div>
+                  <Link
+                    href={currentUser.role === "staff" ? "/staff" : "/rider"}
+                    onClick={() => setUserMenuOpen(false)}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-teal-900 rounded-xl hover:bg-teal-50 transition"
+                  >
+                    {currentUser.role === "staff" ? <Wrench size={14} /> : <User size={14} />}
+                    <span>Open My Dashboard</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onQuickDemoLogin(currentUser.role === "staff" ? "rider" : "staff");
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    <Shuffle size={14} />
+                    <span>Switch to {currentUser.role === "staff" ? "Rider (Alex)" : "Staff (Sarah)"}</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onOpenRoleModal();
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    <Info size={14} />
+                    <span>Role Capabilities</span>
+                  </button>
+                  <div className="border-t border-slate-100 my-1"></div>
+                  <button
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      onSignOut();
+                    }}
+                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-rose-600 rounded-xl hover:bg-rose-50 transition cursor-pointer"
+                  >
+                    <LogOut size={14} />
+                    <span>Sign Out</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onOpenAuthModal("signin")}
+                className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-teal-900 hover:bg-slate-50 rounded-xl transition cursor-pointer border border-slate-200/80"
+                data-testid="button-signin"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => onOpenAuthModal("signup")}
+                className="btn-primary px-3.5 py-1.5 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
+                data-testid="button-signup"
+              >
+                <UserPlus size={13} />
+                Sign Up
+              </button>
+              <button
+                onClick={onOpenRoleModal}
+                className="p-1.5 text-slate-400 hover:text-teal-900 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                title="System Roles & Capabilities"
+              >
+                <Info size={16} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Mobile menu button */}
@@ -155,6 +261,31 @@ function Topbar({
 
       {open && (
         <nav className="grid gap-1 border-t border-slate-100 px-4 py-3 md:hidden bg-white shadow-lg">
+          {currentUser && (
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 border border-slate-100 mb-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-full bg-teal-800 text-white flex items-center justify-center text-xs font-bold">
+                  {currentUser.name.slice(0, 2).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-slate-800 leading-tight">{currentUser.name}</p>
+                  <Tag tone={currentUser.role === "staff" ? "amber" : "green"}>
+                    {currentUser.role === "staff" ? "Station Worker" : "Rider"}
+                  </Tag>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onSignOut();
+                }}
+                className="text-xs font-bold text-rose-600 hover:underline cursor-pointer"
+              >
+                Sign Out
+              </button>
+            </div>
+          )}
+
           {links.map((item) => (
             <Link
               key={item.href}
@@ -170,6 +301,30 @@ function Topbar({
               <span>{item.label}</span>
             </Link>
           ))}
+
+          {!currentUser && (
+            <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100 mt-1">
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onOpenAuthModal("signin");
+                }}
+                className="py-2.5 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 bg-white"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => {
+                  setOpen(false);
+                  onOpenAuthModal("signup");
+                }}
+                className="btn-primary py-2.5 px-3 text-xs font-bold rounded-xl"
+              >
+                Sign Up
+              </button>
+            </div>
+          )}
+
           <div className="border-t border-slate-100 mt-2 pt-2">
             <button
               onClick={() => {
@@ -493,7 +648,17 @@ function BikeCard({
 // ---------------------------------------------------------------------------
 // 1. GUEST DASHBOARD (The Public Home Page /)
 // ---------------------------------------------------------------------------
-function GuestDashboard({ state }: { state: EasyRideState }) {
+function GuestDashboard({
+  state,
+  currentUser,
+  onOpenAuthModal,
+  onQuickDemoLogin,
+}: {
+  state: EasyRideState;
+  currentUser: EasyRideUser | null;
+  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onQuickDemoLogin: (role: UserRole) => void;
+}) {
   const [, navigate] = useLocation();
   const bikes = state.bicycles;
   const activeStations = state.stations.filter(s => s.active);
@@ -548,7 +713,20 @@ function GuestDashboard({ state }: { state: EasyRideState }) {
     {/* Hero Banner with the Real Rotating Bicycle */}
     <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-teal-800 to-teal-900 px-6 py-9 text-white md:px-12 md:py-14 shadow-xl">
       <div className="relative z-[1] max-w-[660px]">
-        <p className="text-xs font-semibold text-amber-300 uppercase tracking-wider">Book your adventure in just one tap</p>
+        {currentUser ? (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-xs text-white mb-3 border border-white/20">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Signed in as <b>{currentUser.name}</b> ({currentUser.role === "staff" ? "Station Worker" : "Rider"})</span>
+            <button
+              onClick={() => navigate(currentUser.role === "staff" ? "/staff" : "/rider")}
+              className="ml-2 text-amber-300 hover:text-amber-200 underline font-bold cursor-pointer"
+            >
+              Go to Dashboard →
+            </button>
+          </div>
+        ) : (
+          <p className="text-xs font-semibold text-amber-300 uppercase tracking-wider">Book your adventure in just one tap</p>
+        )}
         <h1 className="display mt-4 text-[clamp(2.8rem,6.5vw,4.8rem)] font-extrabold leading-[.92] tracking-tight">
           Find your perfect<br/><span className="text-amber-300">ride today</span>
         </h1>
@@ -556,12 +734,24 @@ function GuestDashboard({ state }: { state: EasyRideState }) {
           Explore our collection of high-quality bikes for every terrain. Whether you're commuting across Makerere, Kikoni, or Wandegeya, we've got you covered.
         </p>
         <div className="mt-7 flex flex-wrap items-center gap-3">
-          <button onClick={() => navigate("/rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
-            <User size={16} /> Enter as Rider <ArrowRight size={16}/>
-          </button>
-          <button onClick={() => navigate("/staff")} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3.5 text-sm font-semibold text-white transition cursor-pointer">
-            <Wrench size={15} /> Station Worker Portal
-          </button>
+          {currentUser?.role === "rider" ? (
+            <button onClick={() => navigate("/rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
+              <User size={16} /> My Rider Dashboard <ArrowRight size={16}/>
+            </button>
+          ) : currentUser?.role === "staff" ? (
+            <button onClick={() => navigate("/staff")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer">
+              <Wrench size={16} /> My Staff Station Desk <ArrowRight size={16}/>
+            </button>
+          ) : (
+            <>
+              <button onClick={() => onOpenAuthModal("signin", "rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
+                <User size={16} /> Sign In as Rider <ArrowRight size={16}/>
+              </button>
+              <button onClick={() => onOpenAuthModal("signup")} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3.5 text-sm font-semibold text-white transition cursor-pointer">
+                <UserPlus size={15} /> Create Account
+              </button>
+            </>
+          )}
           <span className="rounded-2xl border border-white/20 px-4 py-2.5 text-xs text-white/80 font-medium">
             {availableBikes.length} bicycles available now
           </span>
@@ -602,10 +792,18 @@ function GuestDashboard({ state }: { state: EasyRideState }) {
           </ul>
         </div>
         <button
-          onClick={() => navigate("/rider")}
+          onClick={() => {
+            if (currentUser?.role === "rider") {
+              navigate("/rider");
+            } else if (currentUser?.role === "staff") {
+              navigate("/rider");
+            } else {
+              onOpenAuthModal("signin", "rider");
+            }
+          }}
           className="mt-5 btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold cursor-pointer"
         >
-          Open Rider Dashboard <ArrowRight size={14} />
+          {currentUser?.role === "rider" ? "Open My Rider Dashboard" : "Sign In & Open Rider Dashboard"} <ArrowRight size={14} />
         </button>
       </div>
 
@@ -628,10 +826,58 @@ function GuestDashboard({ state }: { state: EasyRideState }) {
           </ul>
         </div>
         <button
-          onClick={() => navigate("/staff")}
+          onClick={() => {
+            if (currentUser?.role === "staff") {
+              navigate("/staff");
+            } else if (currentUser?.role === "rider") {
+              navigate("/staff");
+            } else {
+              onOpenAuthModal("signin", "staff");
+            }
+          }}
           className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-900 hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition cursor-pointer"
         >
-          Open Staff Dashboard <ArrowRight size={14} />
+          {currentUser?.role === "staff" ? "Open My Staff Dashboard" : "Sign In & Open Staff Dashboard"} <ArrowRight size={14} />
+        </button>
+      </div>
+    </div>
+
+    {/* Quick Role & Auth Demonstration Bar */}
+    <div className="mt-6 panel p-4 bg-gradient-to-r from-teal-900 to-teal-950 text-white flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
+          <Sparkles size={20} />
+        </div>
+        <div>
+          <p className="text-xs font-bold text-white flex items-center gap-2">
+            <span>Fast Role Switcher (Sign In / Sign Up)</span>
+            <Tag tone="teal">Frontend Only · LocalStorage</Tag>
+          </p>
+          <p className="text-[11px] text-white/75">
+            Test both user roles instantly. All user sessions and fleet data persist in browser LocalStorage.
+          </p>
+        </div>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <button
+          onClick={() => onQuickDemoLogin("rider")}
+          className="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          title="Sign in as Demo Rider Alex Kigozi"
+        >
+          <User size={13} /> Demo Rider (Alex)
+        </button>
+        <button
+          onClick={() => onQuickDemoLogin("staff")}
+          className="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+          title="Sign in as Demo Staff Sarah Nabirye"
+        >
+          <Wrench size={13} /> Demo Staff (Sarah)
+        </button>
+        <button
+          onClick={() => onOpenAuthModal("signup")}
+          className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-teal-950 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
+        >
+          <UserPlus size={13} /> Sign Up New User
         </button>
       </div>
     </div>
@@ -838,17 +1084,36 @@ function GuestDashboard({ state }: { state: EasyRideState }) {
 // ---------------------------------------------------------------------------
 // 2. USER / RIDER DASHBOARD (/rider)
 // ---------------------------------------------------------------------------
-function RiderDashboard({ state, save }: { state: EasyRideState; save: (state: EasyRideState) => void }) {
+function RiderDashboard({
+  state,
+  save,
+  currentUser,
+  onOpenAuthModal,
+  onQuickDemoLogin,
+}: {
+  state: EasyRideState;
+  save: (state: EasyRideState) => void;
+  currentUser: EasyRideUser | null;
+  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onQuickDemoLogin: (role: UserRole) => void;
+}) {
+  const [, navigate] = useLocation();
   const params = new URLSearchParams(window.location.search);
   const initialBikeId = params.get("bike") || "";
   const initialBike = state.bicycles.find(b => b.id === initialBikeId);
   const initialStationId = params.get("station") || initialBike?.stationId || "";
 
   const [stationId, setStationId] = useState(initialStationId);
-  const [customerName, setCustomerName] = useState("");
+  const [customerName, setCustomerName] = useState(currentUser?.name || "");
   const [bicycleId, setBicycleId] = useState(initialBikeId);
   const [holdNote, setHoldNote] = useState("");
   const [calcHours, setCalcHours] = useState(2);
+
+  useEffect(() => {
+    if (currentUser?.name && !customerName) {
+      setCustomerName(currentUser.name);
+    }
+  }, [currentUser]);
 
   // Return dialog state
   const [returnId, setReturnId] = useState("");
@@ -1046,6 +1311,83 @@ function RiderDashboard({ state, save }: { state: EasyRideState; save: (state: E
         title="Rent, ride & return."
         detail="Look up bike availability across stations, ask for a bike to be held, see the price upfront before renting, pick up your ride, return and see what you owe, or report any issues with a bike."
       />
+
+      {/* Account Status Banner */}
+      {currentUser?.role === "rider" ? (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+              {currentUser.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-emerald-950 flex items-center gap-2">
+                <span>Welcome back, {currentUser.name}! 🚴</span>
+                <Tag tone="green">Verified Rider</Tag>
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {currentUser.email} {currentUser.phone && `· ${currentUser.phone}`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[11px] text-emerald-800 font-semibold hidden sm:inline">
+              Your name is auto-filled for fast holds & rentals
+            </span>
+          </div>
+        </div>
+      ) : currentUser?.role === "staff" ? (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs text-amber-950 font-medium">
+            <AlertTriangle size={16} className="text-amber-600 shrink-0" />
+            <span>
+              You are currently signed in with a Staff account (<b>{currentUser.name}</b>). You can test the Rider desk, or return to station worker operations.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => navigate("/staff")}
+              className="btn-primary py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer"
+            >
+              Go to Staff Dashboard →
+            </button>
+            <button
+              onClick={() => onQuickDemoLogin("rider")}
+              className="text-xs text-amber-900 underline hover:text-amber-950 cursor-pointer"
+            >
+              Switch to Rider (Alex)
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 rounded-2xl bg-teal-50/80 border border-teal-200/80 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs text-teal-950 font-medium">
+            <User size={16} className="text-teal-700 shrink-0" />
+            <span>
+              Viewing as Guest. Sign in or sign up as a Rider to save reservations and rides under your profile.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onOpenAuthModal("signin", "rider")}
+              className="btn-primary py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer"
+            >
+              Sign In as Rider
+            </button>
+            <button
+              onClick={() => onOpenAuthModal("signup", "rider")}
+              className="bg-white border border-teal-300 text-teal-900 py-1.5 px-3 text-xs font-bold rounded-xl hover:bg-teal-50 cursor-pointer"
+            >
+              Create Account
+            </button>
+            <button
+              onClick={() => onQuickDemoLogin("rider")}
+              className="text-xs text-teal-800 underline hover:text-teal-950 cursor-pointer hidden sm:inline"
+            >
+              ⚡ 1-Click Demo Rider
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-[.9fr_1.1fr]">
         {/* Left Column: Hold / Book & Price Estimator */}
@@ -1461,9 +1803,24 @@ function RiderDashboard({ state, save }: { state: EasyRideState; save: (state: E
 // ---------------------------------------------------------------------------
 type StaffTab = "checklist" | "holds" | "returns" | "maintenance" | "records" | "settings";
 
-function StaffDashboard({ state, save, saving }: { state: EasyRideState; save: (state: EasyRideState) => void; saving: boolean }) {
+function StaffDashboard({
+  state,
+  save,
+  saving,
+  currentUser,
+  onOpenAuthModal,
+  onQuickDemoLogin,
+}: {
+  state: EasyRideState;
+  save: (state: EasyRideState) => void;
+  saving: boolean;
+  currentUser: EasyRideUser | null;
+  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onQuickDemoLogin: (role: UserRole) => void;
+}) {
+  const [, navigate] = useLocation();
   const [tab, setTab] = useState<StaffTab>("checklist");
-  const [stationFilter, setStationFilter] = useState<string>("");
+  const [stationFilter, setStationFilter] = useState<string>(currentUser?.stationId || "");
 
   // Station worker state
   const [returnId, setReturnId] = useState("");
@@ -1497,12 +1854,13 @@ function StaffDashboard({ state, save, saving }: { state: EasyRideState; save: (
   // 1. Checks that bikes are in good shape (Record Physical Inspection)
   const recordInspection = (bike: EasyRideBicycle) => {
     const nowIso = when();
+    const officer = currentUser?.name || "Station worker";
     save({
       ...state,
       bicycles: state.bicycles.map(b => b.id === bike.id ? { ...b, lastChecked: nowIso } : b),
       activity: addActivity({
         id: uid(),
-        message: `Station worker physically inspected ${bike.code} (${textCase(bike.condition)} condition verified)`,
+        message: `${officer} physically inspected ${bike.code} (${textCase(bike.condition)} condition verified)`,
         createdAt: nowIso,
         kind: "maintenance" as const,
       }),
@@ -1688,6 +2046,83 @@ function StaffDashboard({ state, save, saving }: { state: EasyRideState; save: (
           </div>
         }
       />
+
+      {/* Account Status Banner */}
+      {currentUser?.role === "staff" ? (
+        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/90 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-amber-600 text-white flex items-center justify-center font-bold text-sm shadow-sm">
+              {currentUser.name.slice(0, 2).toUpperCase()}
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-950 flex items-center gap-2">
+                <span>Station Officer: {currentUser.name} 🛠️</span>
+                <Tag tone="amber">Active Station Worker</Tag>
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {currentUser.email} · Assigned Station: {state.stations.find(s => s.id === currentUser.stationId)?.name || "Makerere Central"}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-[11px] text-amber-800 font-semibold hidden sm:inline">
+              Inspections & dispatches will record your staff credentials
+            </span>
+          </div>
+        </div>
+      ) : currentUser?.role === "rider" ? (
+        <div className="mb-6 p-4 rounded-2xl bg-rose-50 border border-rose-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs text-rose-950 font-medium">
+            <ShieldAlert size={16} className="text-rose-600 shrink-0" />
+            <span>
+              Restricted Area: You are signed in as a Customer (Rider: <b>{currentUser.name}</b>). Station worker controls are reserved for staff.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onQuickDemoLogin("staff")}
+              className="btn-primary py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer"
+            >
+              ⚡ Switch to Staff (Sarah Nabirye)
+            </button>
+            <button
+              onClick={() => onOpenAuthModal("signin", "staff")}
+              className="bg-white border border-rose-300 text-rose-900 py-1.5 px-3 text-xs font-bold rounded-xl hover:bg-rose-50 cursor-pointer"
+            >
+              Staff Sign In
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-6 p-4 rounded-2xl bg-amber-50/80 border border-amber-200/90 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-2.5 text-xs text-amber-950 font-medium">
+            <Lock size={16} className="text-amber-700 shrink-0" />
+            <span>
+              Station Worker Portal: Sign in with a staff account to inspect bikes, confirm holds, handoff bikes, and manage quarantine.
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onOpenAuthModal("signin", "staff")}
+              className="btn-primary py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer"
+            >
+              Staff Sign In
+            </button>
+            <button
+              onClick={() => onQuickDemoLogin("staff")}
+              className="bg-white border border-amber-300 text-amber-900 py-1.5 px-3 text-xs font-bold rounded-xl hover:bg-amber-100/60 cursor-pointer"
+            >
+              ⚡ 1-Click Demo Staff
+            </button>
+            <button
+              onClick={() => onOpenAuthModal("signup", "staff")}
+              className="text-xs text-amber-800 underline hover:text-amber-950 cursor-pointer hidden sm:inline"
+            >
+              Register New Staff
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Staff Tab Bar */}
       <div className="mb-6 flex gap-1.5 overflow-x-auto rounded-2xl bg-[#e9e9df] p-1.5 no-scrollbar">
@@ -2220,23 +2655,135 @@ function StaffDashboard({ state, save, saving }: { state: EasyRideState; save: (
 // ---------------------------------------------------------------------------
 export default function EasyRidePage() {
   const { state, loading, error, retry, save, saving } = useEasyRide();
-  const [path] = useLocation();
+  const auth = useAuth();
+  const [path, navigate] = useLocation();
   const [roleModalOpen, setRoleModalOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalMode, setAuthModalMode] = useState<"signin" | "signup">("signin");
+  const [authModalRole, setAuthModalRole] = useState<UserRole>("rider");
+
+  const isAuthRoute =
+    path === "/login" ||
+    path === "/signin" ||
+    path === "/signup" ||
+    path === "/register";
+
+  const authInitialMode = path === "/signup" || path === "/register" ? "signup" : "signin";
 
   const isStaffPath = path.startsWith("/staff") || path.startsWith("/operator");
   const isRiderPath = path.startsWith("/rider") || path.startsWith("/rentals");
 
+  const openAuthModal = (mode: "signin" | "signup" = "signin", role: UserRole = "rider") => {
+    setAuthModalMode(mode);
+    setAuthModalRole(role);
+    setAuthModalOpen(true);
+  };
+
+  const handleAuthSuccess = (user: EasyRideUser) => {
+    setAuthModalOpen(false);
+    if (user.role === "staff") {
+      navigate("/staff");
+    } else {
+      navigate("/rider");
+    }
+  };
+
+  const handleQuickDemoLogin = (role: UserRole) => {
+    const user = auth.quickDemoLogin(role);
+    if (user) {
+      if (role === "staff") {
+        navigate("/staff");
+      } else {
+        navigate("/rider");
+      }
+    }
+  };
+
+  const handleSignOut = () => {
+    auth.signout();
+    navigate("/");
+  };
+
   const page = useMemo(() => {
     if (!state || loading || error) return null;
-    if (isStaffPath) return <StaffDashboard state={state} save={save} saving={saving} />;
-    if (isRiderPath) return <RiderDashboard state={state} save={save} />;
-    return <GuestDashboard state={state} />;
-  }, [state, loading, error, isStaffPath, isRiderPath, save, saving]);
+    if (isStaffPath) {
+      return (
+        <StaffDashboard
+          state={state}
+          save={save}
+          saving={saving}
+          currentUser={auth.currentUser}
+          onOpenAuthModal={openAuthModal}
+          onQuickDemoLogin={handleQuickDemoLogin}
+        />
+      );
+    }
+    if (isRiderPath) {
+      return (
+        <RiderDashboard
+          state={state}
+          save={save}
+          currentUser={auth.currentUser}
+          onOpenAuthModal={openAuthModal}
+          onQuickDemoLogin={handleQuickDemoLogin}
+        />
+      );
+    }
+    return (
+      <GuestDashboard
+        state={state}
+        currentUser={auth.currentUser}
+        onOpenAuthModal={openAuthModal}
+        onQuickDemoLogin={handleQuickDemoLogin}
+      />
+    );
+  }, [state, loading, error, isStaffPath, isRiderPath, save, saving, auth.currentUser]);
+
+  // Full-page Auth route (/login, /signup, etc.)
+  if (isAuthRoute) {
+    return (
+      <div className="page-shell grain min-h-[100dvh] flex flex-col justify-between">
+        <div>
+          <Topbar
+            activePath={path}
+            currentUser={auth.currentUser}
+            onOpenRoleModal={() => setRoleModalOpen(true)}
+            onOpenAuthModal={openAuthModal}
+            onSignOut={handleSignOut}
+            onQuickDemoLogin={handleQuickDemoLogin}
+          />
+          <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-800 hover:text-teal-950 mb-6 self-start no-underline"
+            >
+              <ArrowLeft size={14} /> Back to Guest Dashboard
+            </Link>
+            <AuthCard
+              initialMode={authInitialMode}
+              stations={state?.stations || []}
+              onSuccess={handleAuthSuccess}
+            />
+          </main>
+        </div>
+        <footer className="border-t border-[#214f46]/10 px-5 py-6 text-center text-[10px] text-[#849087]">
+          EasyRide Bicycle Rental · Frontend LocalStorage Authentication · Kampala, Uganda
+        </footer>
+      </div>
+    );
+  }
 
   return (
     <div className="page-shell grain min-h-[100dvh] flex flex-col justify-between">
       <div>
-        <Topbar activePath={path} onOpenRoleModal={() => setRoleModalOpen(true)} />
+        <Topbar
+          activePath={path}
+          currentUser={auth.currentUser}
+          onOpenRoleModal={() => setRoleModalOpen(true)}
+          onOpenAuthModal={openAuthModal}
+          onSignOut={handleSignOut}
+          onQuickDemoLogin={handleQuickDemoLogin}
+        />
         {loading ? <SkeletonPage /> : error || !state ? <MissingState error={error} retry={retry} /> : page}
       </div>
       <footer className="border-t border-[#214f46]/10 px-5 py-6 text-center text-[10px] text-[#849087]">
@@ -2246,6 +2793,15 @@ export default function EasyRidePage() {
       <RoleSelectorModal
         open={roleModalOpen}
         onClose={() => setRoleModalOpen(false)}
+      />
+
+      <AuthModal
+        open={authModalOpen}
+        initialMode={authModalMode}
+        initialRole={authModalRole}
+        stations={state?.stations || []}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={handleAuthSuccess}
       />
     </div>
   );
