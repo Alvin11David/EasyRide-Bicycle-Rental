@@ -82,14 +82,12 @@ const bikeCategories = [
 function Topbar({
   activePath,
   currentUser,
-  onOpenRoleModal,
   onOpenAuthModal,
   onSignOut,
   onQuickDemoLogin,
 }: {
   activePath: string;
   currentUser: EasyRideUser | null;
-  onOpenRoleModal: () => void;
   onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
   onSignOut: () => void;
   onQuickDemoLogin: (role: UserRole) => void;
@@ -212,16 +210,6 @@ function Topbar({
                     <Shuffle size={14} />
                     <span>Switch to {currentUser.role === "staff" ? "Rider (Alex)" : "Staff (Sarah)"}</span>
                   </button>
-                  <button
-                    onClick={() => {
-                      setUserMenuOpen(false);
-                      onOpenRoleModal();
-                    }}
-                    className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-600 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-                  >
-                    <Info size={14} />
-                    <span>Role Capabilities</span>
-                  </button>
                   <div className="border-t border-slate-100 my-1"></div>
                   <button
                     onClick={() => {
@@ -252,13 +240,6 @@ function Topbar({
               >
                 <UserPlus size={13} />
                 Sign Up
-              </button>
-              <button
-                onClick={onOpenRoleModal}
-                className="p-1.5 text-slate-400 hover:text-teal-900 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-                title="System Roles & Capabilities"
-              >
-                <Info size={16} />
               </button>
             </div>
           )}
@@ -341,111 +322,9 @@ function Topbar({
               </button>
             </div>
           )}
-
-          <div className="border-t border-slate-100 mt-2 pt-2">
-            <button
-              onClick={() => {
-                setOpen(false);
-                onOpenRoleModal();
-              }}
-              className="w-full text-left rounded-xl px-3.5 py-2 text-xs font-bold text-teal-800 hover:bg-teal-50 cursor-pointer flex items-center justify-between"
-            >
-              <span>System Roles & Capabilities</span>
-              <span>ℹ️</span>
-            </button>
-          </div>
         </nav>
       )}
     </header>
-  );
-}
-
-function RoleSelectorModal({
-  open,
-  onClose,
-}: {
-  open: boolean;
-  onClose: () => void;
-}) {
-  const [, navigate] = useLocation();
-  if (!open) return null;
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 enter">
-      <div className="bg-white rounded-3xl shadow-2xl border border-slate-100 p-6 md:p-8 max-w-2xl w-full text-center relative max-h-[90vh] overflow-y-auto">
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition cursor-pointer"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
-        <div className="grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-800 mx-auto mb-3 shadow-inner">
-          <Bike size={24} />
-        </div>
-        <h2 className="display text-2xl font-bold text-teal-900 mb-1">EasyRide User Roles</h2>
-        <p className="text-xs text-slate-500 mb-6">The system supports two specialized roles alongside the public guest dashboard</p>
-
-        <div className="grid gap-5 sm:grid-cols-2 text-left">
-          {/* Customer / Rider Card */}
-          <div className="p-5 rounded-2xl border-2 border-teal-700/60 bg-teal-50/40 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-950 bg-teal-100/80 px-2.5 py-1 rounded-full">
-                  <User size={13} /> User (The Rider)
-                </span>
-                <span className="text-[10px] font-bold text-teal-700 uppercase">Rents & rides</span>
-              </div>
-              <ul className="text-xs text-slate-600 space-y-2 mt-3 font-medium">
-                <li className="flex items-start gap-1.5"><span className="text-teal-700 font-bold">•</span> Looks up if a bike is available</li>
-                <li className="flex items-start gap-1.5"><span className="text-teal-700 font-bold">•</span> Asks for a bike to be held</li>
-                <li className="flex items-start gap-1.5"><span className="text-teal-700 font-bold">•</span> Sees the price before renting</li>
-                <li className="flex items-start gap-1.5"><span className="text-teal-700 font-bold">•</span> Picks up the bike and rides it</li>
-                <li className="flex items-start gap-1.5"><span className="text-teal-700 font-bold">•</span> Reports it if something is wrong with the bike</li>
-                <li className="flex items-start gap-1.5"><span className="text-teal-700 font-bold">•</span> Returns the bike and sees what they owe</li>
-              </ul>
-            </div>
-            <button
-              onClick={() => {
-                onClose();
-                navigate("/rider");
-              }}
-              className="mt-5 w-full bg-teal-800 hover:bg-teal-900 text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              Open Rider Dashboard <ArrowRight size={14} />
-            </button>
-          </div>
-
-          {/* Staff / Station Worker Card */}
-          <div className="p-5 rounded-2xl border-2 border-amber-600/40 bg-amber-50/40 flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-950 bg-amber-100/90 px-2.5 py-1 rounded-full">
-                  <Wrench size={13} /> Staff (Station Worker)
-                </span>
-                <span className="text-[10px] font-bold text-amber-800 uppercase">Checks & tracks</span>
-              </div>
-              <ul className="text-xs text-slate-600 space-y-2 mt-3 font-medium">
-                <li className="flex items-start gap-1.5"><span className="text-amber-700 font-bold">•</span> Checks that bikes are in good shape</li>
-                <li className="flex items-start gap-1.5"><span className="text-amber-700 font-bold">•</span> Confirms the bike is ready for the rider</li>
-                <li className="flex items-start gap-1.5"><span className="text-amber-700 font-bold">•</span> Gives the bike to the rider and records it</li>
-                <li className="flex items-start gap-1.5"><span className="text-amber-700 font-bold">•</span> Takes the bike back and closes the rental</li>
-                <li className="flex items-start gap-1.5"><span className="text-amber-700 font-bold">•</span> Records any problem with a bike</li>
-                <li className="flex items-start gap-1.5"><span className="text-amber-700 font-bold">•</span> Keeps broken bikes out of use until fixed</li>
-              </ul>
-            </div>
-            <button
-              onClick={() => {
-                onClose();
-                navigate("/staff");
-              }}
-              className="mt-5 w-full bg-teal-900 hover:bg-black text-white font-bold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
-            >
-              Open Staff Dashboard <ArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -2565,7 +2444,6 @@ export default function EasyRidePage() {
   const [currentUserOverride, setCurrentUserOverride] = useState<EasyRideUser | null>(null);
   const activeUser = currentUserOverride || auth.currentUser;
   const [path, navigate] = useLocation();
-  const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const [authModalMode, setAuthModalMode] = useState<"signin" | "signup">("signin");
   const [authModalRole, setAuthModalRole] = useState<UserRole>("rider");
@@ -2732,7 +2610,6 @@ export default function EasyRidePage() {
           <Topbar
             activePath={path}
             currentUser={activeUser}
-            onOpenRoleModal={() => setRoleModalOpen(true)}
             onOpenAuthModal={openAuthModal}
             onSignOut={handleSignOut}
             onQuickDemoLogin={handleQuickDemoLogin}
@@ -2765,7 +2642,6 @@ export default function EasyRidePage() {
         <Topbar
           activePath={path}
           currentUser={activeUser}
-          onOpenRoleModal={() => setRoleModalOpen(true)}
           onOpenAuthModal={openAuthModal}
           onSignOut={handleSignOut}
           onQuickDemoLogin={handleQuickDemoLogin}
@@ -2775,11 +2651,6 @@ export default function EasyRidePage() {
       <footer className="border-t border-[#214f46]/10 px-5 py-6 text-center text-[10px] text-[#849087]">
         <span className="font-semibold text-[#536f60]">{state?.config.serviceName || "EasyRide"}</span> · {isStaffPath ? "Staff Portal (Station Worker)" : isRiderPath ? "Rider Portal (Customer)" : "Guest Public Dashboard"} · Makerere routes · Kampala, Uganda
       </footer>
-
-      <RoleSelectorModal
-        open={roleModalOpen}
-        onClose={() => setRoleModalOpen(false)}
-      />
 
       <AuthModal
         open={authModalOpen}
