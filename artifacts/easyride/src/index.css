@@ -67,6 +67,30 @@
   --color-brand-surface: #f6f9f8;
   --color-brand-border: #e2ece9;
 
+  /* Reservation surface scale (bike detail + booking page). Kept separate
+     from the flat `brand-dark`/`brand-primary` tokens above so the
+     reservation screen can use the full tonal ramp. */
+  --color-brand-50: #f0fdf9;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #0d3b42;
+  --color-brand-900: #09262b;
+  --color-brand-950: #041619;
+
+  --color-amberAccent-400: #fbbf24;
+  --color-amberAccent-500: #f59e0b;
+  --color-amberAccent-600: #d97706;
+
+  --color-mintGreen-50: #ecfdf5;
+  --color-mintGreen-100: #d1fae5;
+  --color-mintGreen-500: #10b981;
+  --color-mintGreen-600: #059669;
+
   /* Staff console palette (separate namespace so it never clashes with the
      customer-facing `brand-*` tokens above). */
   --color-staff-pine: #0a353d;

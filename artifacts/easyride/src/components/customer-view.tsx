@@ -1,9 +1,8 @@
 import { useState, useMemo, useRef, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import type { EasyRideState } from "@workspace/api-client-react";
 import type { EasyRideUser } from "@/hooks/use-auth";
 import {
-  applyCustomerRental,
   completeCustomerRental,
   customerRentalId,
   forgetCustomerRental,
@@ -282,6 +281,7 @@ export function CustomerView({
   // Currency comes from the shared configuration so the rider app and the
   // staff console always quote a hire the same way.
   const currency = state?.config.currency ?? "UGX";
+  const [, navigate] = useLocation();
 
   const [fleet, setFleet] = useState<CustomerFleetBike[]>(() => {
     if (typeof window === "undefined") return generate100Fleet();
@@ -334,10 +334,6 @@ export function CustomerView({
   const itemsPerPage = 8;
 
   // Modals & Feedback
-  const [rentModalBike, setRentModalBike] = useState<CustomerFleetBike | null>(null);
-  const [rentHours, setRentHours] = useState<number>(2);
-  const [rentCustomerName, setRentCustomerName] = useState<string>(currentUser?.name || "Atugonza");
-  const [rentPhone, setRentPhone] = useState<string>(currentUser?.phone || "+256 772 100 200");
   const [ordersModalOpen, setOrdersModalOpen] = useState<boolean>(false);
   const [hubsModalOpen, setHubsModalOpen] = useState<boolean>(false);
   const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
@@ -395,55 +391,6 @@ export function CustomerView({
     setCertifiedOnly(true);
     setSortBy("popularity");
     setCurrentPage(1);
-  };
-
-  const handleConfirmRental = () => {
-    if (!rentModalBike) return;
-    const totalAmount = rentModalBike.rate * rentHours;
-    const newFleet = fleet.map((b) => (b.id === rentModalBike.id ? { ...b, status: "rented" as const } : b));
-    saveFleetLocal(newFleet);
-
-    const newOrder: CustomerOrder = {
-      orderId: `ORD-${Date.now().toString().slice(-6)}`,
-      bikeId: rentModalBike.id,
-      bikeName: rentModalBike.name,
-      bikeCode: rentModalBike.code,
-      customerName: rentCustomerName.trim() || "Atugonza",
-      phone: rentPhone.trim() || "+256 772 100 200",
-      station: rentModalBike.station,
-      hours: rentHours,
-      totalAmount,
-      startTime: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-      date: new Date().toLocaleDateString(),
-      status: "active",
-    };
-
-    saveOrdersLocal([newOrder, ...orders]);
-
-    // Mirror the booking into the shared state so the station team sees the
-    // bike as borrowed straight away (no backend — localStorage only).
-    if (state && save) {
-      save(
-        applyCustomerRental(state, {
-          orderId: newOrder.orderId,
-          bikeId: newOrder.bikeId,
-          bikeCode: newOrder.bikeCode,
-          bikeName: newOrder.bikeName,
-          bikeType: rentModalBike.type,
-          customerName: newOrder.customerName,
-          phone: newOrder.phone,
-          stationName: newOrder.station,
-          stationLandmark:
-            KAMPALA_STATIONS.find((s) => s.name === newOrder.station)?.desc,
-          rate: rentModalBike.rate,
-          hours: rentHours,
-          amount: totalAmount,
-        }),
-      );
-    }
-
-    setRentModalBike(null);
-    showToast("Rental Confirmed!", `${rentModalBike.name} unlocked at ${rentModalBike.station}. Total: ${money(totalAmount, currency)}`);
   };
 
   const handleReturnBike = (orderId: string) => {
@@ -1183,7 +1130,7 @@ export function CustomerView({
                           </button>
                         ) : (
                           <button
-                            onClick={() => { setRentModalBike(bike); setRentHours(2); }}
+                            onClick={() => navigate(`/reserve?bike=${bike.id}`)}
                             className="w-full py-2.5 bg-brand-dark hover:bg-brand-primary active:bg-brand-dark text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition transform hover:scale-[1.02] cursor-pointer"
                           >
                             <svg className="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1316,102 +1263,6 @@ export function CustomerView({
       </footer>
       {/* END: Footer */}
 
-      {/* Rental Modal */}
-      {rentModalBike && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-brand-dark/60 backdrop-blur-sm animate-in fade-in duration-150">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-brand-border space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-brand-dark text-white flex items-center justify-center">
-                  <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path></svg>
-                </div>
-                <div>
-                  <h3 className="font-display font-extrabold text-base text-brand-dark">Instant Bike Reservation</h3>
-                  <p className="text-[11px] text-slate-400">Direct pickup at station bay</p>
-                </div>
-              </div>
-              <button onClick={() => setRentModalBike(null)} className="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer">
-                ✕
-              </button>
-            </div>
-
-            <div className="bg-brand-surface p-4 rounded-2xl border border-brand-border flex items-center gap-3.5">
-              <div className="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center text-brand-primary shrink-0">
-                <svg className="w-10 h-10" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" viewBox="0 0 24 24">
-                  <circle cx="5.5" cy="17.5" r="3.5"></circle>
-                  <circle cx="18.5" cy="17.5" r="3.5"></circle>
-                  <path d="M15 17.5V11L12 7H9L7 13"></path>
-                  <path d="M12 17.5V13h3.5"></path>
-                  <path d="M8 8h3"></path>
-                </svg>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">{rentModalBike.code}</span>
-                  <span className="text-[10px] font-bold text-emerald-600">● Ready for Pickup</span>
-                </div>
-                <h4 className="font-display font-bold text-sm text-brand-dark mt-0.5">{rentModalBike.name}</h4>
-                <p className="text-xs text-slate-500">{rentModalBike.station}</p>
-              </div>
-            </div>
-
-            <div className="space-y-3 text-xs">
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Rider Name</label>
-                <input
-                  type="text"
-                  value={rentCustomerName}
-                  onChange={(e) => setRentCustomerName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-brand-primary/20"
-                />
-              </div>
-              <div>
-                <label className="block font-bold text-slate-700 mb-1">Mobile Money Number</label>
-                <input
-                  type="text"
-                  value={rentPhone}
-                  onChange={(e) => setRentPhone(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-brand-primary/20"
-                />
-              </div>
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="font-bold text-slate-700">Estimated Duration</label>
-                  <span className="font-bold text-brand-primary">{rentHours} hour{rentHours > 1 ? "s" : ""}</span>
-                </div>
-                <input
-                  type="range"
-                  min="1"
-                  max="12"
-                  value={rentHours}
-                  onChange={(e) => setRentHours(parseInt(e.target.value))}
-                  className="w-full cursor-pointer"
-                />
-              </div>
-              <div className="p-3 bg-brand-goldLight rounded-xl border border-amber-200 flex justify-between items-center font-bold">
-                <span className="text-amber-900">Estimated Rental Fee</span>
-                <span className="text-base text-brand-dark font-display">{money(rentModalBike.rate * rentHours, currency)}</span>
-              </div>
-            </div>
-
-            <div className="flex gap-2.5 pt-2">
-              <button
-                onClick={handleConfirmRental}
-                className="flex-1 py-3 bg-brand-dark hover:bg-brand-primary text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer"
-              >
-                <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5"></path></svg>
-                Confirm &amp; Unlock Bike
-              </button>
-              <button
-                onClick={() => setRentModalBike(null)}
-                className="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Orders Modal */}
       {ordersModalOpen && (

@@ -14,6 +14,7 @@ import { useEasyRide } from "@/hooks/use-easyride";
 import { useAuth, type EasyRideUser, type UserRole, DEFAULT_USERS } from "@/hooks/use-auth";
 import { AuthCard, AuthModal } from "@/components/auth-modal";
 import { CustomerView } from "@/components/customer-view";
+import ReservationView from "@/components/reservation-view";
 import StaffDashboard from "@/components/staff-dashboard";
 import { getBikeMeta } from "@/lib/mock-data";
 import { money } from "@/lib/format";
@@ -936,7 +937,11 @@ export default function EasyRidePage() {
   const authInitialMode = path === "/signup" || path === "/register" ? "signup" : "signin";
 
   const isStaffPath = path.startsWith("/staff") || path.startsWith("/operator");
-  const isRiderPath = path.startsWith("/rider") || path.startsWith("/rentals");
+  const isReservePath = path.startsWith("/reserve");
+  const isRiderPath =
+    path.startsWith("/rider") ||
+    path.startsWith("/rentals") ||
+    isReservePath;
 
   const openAuthModal = (mode: "signin" | "signup" = "signin", role: UserRole = "rider") => {
     setAuthModalMode(mode);
@@ -1059,6 +1064,18 @@ export default function EasyRidePage() {
         );
       }
 
+      if (isReservePath) {
+        return (
+          <ReservationView
+            state={state}
+            save={save}
+            currentUser={activeUser}
+            onBack={() => navigate("/rider")}
+            onBooked={() => navigate("/rider")}
+          />
+        );
+      }
+
       return (
         <RiderDashboard
           state={state}
@@ -1081,7 +1098,7 @@ export default function EasyRidePage() {
         onSignOut={handleSignOut}
       />
     );
-  }, [state, loading, error, isStaffPath, isRiderPath, save, saving, activeUser]);
+  }, [state, loading, error, isStaffPath, isRiderPath, isReservePath, save, saving, activeUser]);
 
   // Full-page Auth route (/login, /signup, etc.)
   if (isAuthRoute) {

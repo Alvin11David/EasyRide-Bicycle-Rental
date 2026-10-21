@@ -491,3 +491,125 @@ export function releaseCustomerOrder(orderId: string): void {
 export function forgetCustomerRental(orderId: string): void {
   forgetCustomerRentalMeta(customerRentalId(orderId));
 }
+
+// ---------------------------------------------------------------------------
+// Rider-app booking
+// ---------------------------------------------------------------------------
+
+/** Payment rails offered on the reservation screen. */
+export type CustomerPaymentMethod = "mobile_money" | "visa" | "cash";
+
+/** A hire of this many hours or more is billed as a day pass. */
+export const DAY_PASS_HOURS = 8;
+export const DAY_PASS_DISCOUNT = 0.2;
+
+/**
+ * What a hire costs: the hourly rate times the hours, less the day-pass
+ * discount for long hires. Shared so the reservation screen and the recorded
+ * order never disagree on the amount.
+ */
+export function hireAmount(rate: number, hours: number): number {
+  const duration = Math.max(1, Math.round(hours || 1));
+  const gross = Math.max(0, rate) * duration;
+  return duration >= DAY_PASS_HOURS ? gross * (1 - DAY_PASS_DISCOUNT) : gross;
+}
+
+export interface CustomerBookingInput {
+  bike: {
+    id: string;
+    code: string;
+    name: string;
+    type: string;
+    station: string;
+    rate: number;
+  };
+  hours: number;
+  customerName: string;
+  phone: string;
+  paymentMethod?: CustomerPaymentMethod;
+  /** When the rider wants to collect the bike (defaults to now). */
+  pickupTime?: string;
+}
+
+/** Overwrite the rider-app catalogue held in localStorage. */
+export function writeCustomerFleet(fleet: unknown[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CUSTOMER_FLEET_KEY, JSON.stringify(fleet));
+  } catch {
+    /* storage full or unavailable */
+  }
+}
+
+/** Overwrite the rider-app order list held in localStorage. */
+export function writeCustomerOrders(orders: unknown[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(CUSTOMER_ORDERS_KEY, JSON.stringify(orders));
+  } catch {
+    /* storage full or unavailable */
+  }
+}
+
+/**
+ * Take a booking from the reservation screen.
+ *
+ * The order is written to the rider-app order list, the bike is marked as
+ * borrowed on the rider catalogue and the hire is mirrored into the shared
+ * state so the station team sees it straight away.
+ *
+ * Returns the order that was created together with the updated shared state.
+ */
+export function bookCustomerBike(
+  state: EasyRideState,
+  input: CustomerBookingInput,
+): { state: EasyRideState; order: CustomerOrderRecord } {
+  const hours = Math.max(1, Math.round(input.hours || 1));
+  const amount = hireAmount(input.bike.rate, hours);
+
+  const order: CustomerOrderRecord = {
+    orderId: `ORD-${Date.now().toString().slice(-6)}`,
+    bikeId: input.bike.id,
+    bikeCode: input.bike.code,
+    bikeName: input.bike.name,
+    customerName: input.customerName.trim() || "Atugonza",
+    phone: input.phone.trim() || "+256 772 100 200",
+    station: input.bike.station,
+    hours,
+    totalAmount: amount,
+    startTime: new Date().toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    date: new Date().toLocaleDateString(),
+    status: "active",
+  };
+
+  // The bike is off the road until it is returned.
+  const fleet = readCustomerFleet();
+  if (fleet.length) {
+    writeCustomerFleet(
+      fleet.map((b) => (b.id === order.bikeId ? { ...b, status: "rented" } : b)),
+    );
+  }
+
+  writeCustomerOrders([order, ...readCustomerOrders()]);
+
+  const nextState = applyCustomerRental(state, {
+    orderId: order.orderId,
+    bikeId: order.bikeId,
+    bikeCode: order.bikeCode,
+    bikeName: order.bikeName,
+    bikeType: input.bike.type,
+    customerName: order.customerName,
+    phone: order.phone,
+    stationName: order.station,
+    stationLandmark: KAMPALA_STATIONS.find((s) => s.name === order.station)?.desc,
+    rate: input.bike.rate,
+    hours,
+    amount,
+    startedAt: input.pickupTime,
+  });
+
+  return { state: nextState, order };
+}

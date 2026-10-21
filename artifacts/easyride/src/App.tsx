@@ -22,6 +22,7 @@ function Router() {
       <Switch>
         <Route path="/" component={EasyRidePage} />
         <Route path="/rider" component={EasyRidePage} />
+        <Route path="/reserve" component={EasyRidePage} />
         <Route path="/staff" component={EasyRidePage} />
         <Route path="/rentals" component={EasyRidePage} />
         <Route path="/operator" component={EasyRidePage} />
