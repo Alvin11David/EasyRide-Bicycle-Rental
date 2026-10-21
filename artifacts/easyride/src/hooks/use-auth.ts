@@ -55,6 +55,19 @@ export function getStoredUsers(): EasyRideUser[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        const existingEmails = new Set(parsed.map((u: EasyRideUser) => u.email?.toLowerCase()));
+        let merged = false;
+        for (const def of DEFAULT_USERS) {
+          if (!existingEmails.has(def.email.toLowerCase())) {
+            parsed.push(def);
+            merged = true;
+          }
+        }
+        if (merged) {
+          try {
+            localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(parsed));
+          } catch {}
+        }
         return parsed;
       }
     }

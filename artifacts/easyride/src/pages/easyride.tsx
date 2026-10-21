@@ -788,117 +788,6 @@ function GuestDashboard({
       </div>
     </section>
 
-    {/* Dual Portal Cards: User (Rider) vs Staff (Station Worker) */}
-    <div className="mt-8 grid gap-5 md:grid-cols-2">
-      <div className="panel p-6 border-l-4 border-l-teal-700 flex flex-col justify-between hover:shadow-md transition">
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-teal-950 bg-teal-50 px-3 py-1 rounded-full border border-teal-200/60">
-              <User size={14} className="text-teal-700" /> User (The Rider)
-            </span>
-            <span className="text-[11px] font-bold text-teal-800">Rents & rides</span>
-          </div>
-          <h3 className="display mt-3 text-xl font-bold text-teal-950">Looking to rent a bicycle?</h3>
-          <p className="text-xs text-slate-600 mt-1.5 leading-5">
-            Look up live availability, reserve a bicycle to be held at your pickup point, see clear hourly pricing upfront, ride, and settle on return.
-          </p>
-          <ul className="mt-3 text-xs text-slate-500 space-y-1">
-            <li className="flex items-center gap-1.5">✓ Hold requests with staff inspection</li>
-            <li className="flex items-center gap-1.5">✓ Upfront hourly pricing estimate</li>
-            <li className="flex items-center gap-1.5">✓ In-app fault reporting</li>
-          </ul>
-        </div>
-        <button
-          onClick={() => {
-            if (currentUser?.role === "rider") {
-              navigate("/rider");
-            } else if (currentUser?.role === "staff") {
-              navigate("/rider");
-            } else {
-              onOpenAuthModal("signin", "rider");
-            }
-          }}
-          className="mt-5 btn-primary inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-xs font-bold cursor-pointer"
-        >
-          {currentUser?.role === "rider" ? "Open My Rider Dashboard" : "Sign In & Open Rider Dashboard"} <ArrowRight size={14} />
-        </button>
-      </div>
-
-      <div className="panel p-6 border-l-4 border-l-amber-600 flex flex-col justify-between hover:shadow-md transition">
-        <div>
-          <div className="flex items-center justify-between">
-            <span className="inline-flex items-center gap-1.5 text-xs font-extrabold text-amber-950 bg-amber-50 px-3 py-1 rounded-full border border-amber-200/60">
-              <Wrench size={14} className="text-amber-700" /> Staff (Station Worker)
-            </span>
-            <span className="text-[11px] font-bold text-amber-800">Checks & tracks</span>
-          </div>
-          <h3 className="display mt-3 text-xl font-bold text-teal-950">Managing a station?</h3>
-          <p className="text-xs text-slate-600 mt-1.5 leading-5">
-            Perform physical roadworthiness checks, confirm held bikes ready for riders, dispatch rides, take returns, and isolate broken bikes until fixed.
-          </p>
-          <ul className="mt-3 text-xs text-slate-500 space-y-1">
-            <li className="flex items-center gap-1.5">✓ Physical safety checklist verification</li>
-            <li className="flex items-center gap-1.5">✓ Confirm & dispatch hold requests</li>
-            <li className="flex items-center gap-1.5">✓ Quarantine broken bikes from circulation</li>
-          </ul>
-        </div>
-        <button
-          onClick={() => {
-            if (currentUser?.role === "staff") {
-              navigate("/staff");
-            } else if (currentUser?.role === "rider") {
-              navigate("/staff");
-            } else {
-              onOpenAuthModal("signin", "staff");
-            }
-          }}
-          className="mt-5 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-900 hover:bg-black text-white px-4 py-2.5 text-xs font-bold transition cursor-pointer"
-        >
-          {currentUser?.role === "staff" ? "Open My Staff Dashboard" : "Sign In & Open Staff Dashboard"} <ArrowRight size={14} />
-        </button>
-      </div>
-    </div>
-
-    {/* Quick Role & Auth Demonstration Bar */}
-    <div className="mt-6 panel p-4 bg-gradient-to-r from-teal-900 to-teal-950 text-white flex flex-wrap items-center justify-between gap-4">
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-10 rounded-2xl bg-amber-400/20 text-amber-300 flex items-center justify-center shrink-0">
-          <Sparkles size={20} />
-        </div>
-        <div>
-          <p className="text-xs font-bold text-white flex items-center gap-2">
-            <span>Fast Role Switcher (Sign In / Sign Up)</span>
-            <Tag tone="teal">Frontend Only · LocalStorage</Tag>
-          </p>
-          <p className="text-[11px] text-white/75">
-            Test both user roles instantly. All user sessions and fleet data persist in browser LocalStorage.
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <button
-          onClick={() => onQuickDemoLogin("rider")}
-          className="px-3 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-400/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-          title="Sign in as Demo Rider Alex Kigozi"
-        >
-          <User size={13} /> Demo Rider (Alex)
-        </button>
-        <button
-          onClick={() => onQuickDemoLogin("staff")}
-          className="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
-          title="Sign in as Demo Staff Sarah Nabirye"
-        >
-          <Wrench size={13} /> Demo Staff (Sarah)
-        </button>
-        <button
-          onClick={() => onOpenAuthModal("signup")}
-          className="px-3.5 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-teal-950 text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-sm"
-        >
-          <UserPlus size={13} /> Sign Up New User
-        </button>
-      </div>
-    </div>
-
     {/* Popular Bikes Section with Responsive Filter Buttons & Search */}
     <div ref={bikesSectionRef} className="mt-10 flex flex-col gap-4 scroll-mt-20">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -2673,6 +2562,8 @@ function StaffDashboard({
 export default function EasyRidePage() {
   const { state, loading, error, retry, save, saving } = useEasyRide();
   const auth = useAuth();
+  const [currentUserOverride, setCurrentUserOverride] = useState<EasyRideUser | null>(null);
+  const activeUser = currentUserOverride || auth.currentUser;
   const [path, navigate] = useLocation();
   const [roleModalOpen, setRoleModalOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
@@ -2698,25 +2589,22 @@ export default function EasyRidePage() {
 
   const handleAuthSuccess = (user: EasyRideUser) => {
     setAuthModalOpen(false);
-    if (user.role === "staff") {
-      navigate("/staff");
-    } else {
-      navigate("/rider");
-    }
+    setCurrentUserOverride(user);
+    const targetPath = user.role === "staff" ? "/staff" : "/rider";
+    navigate(targetPath);
   };
 
   const handleQuickDemoLogin = (role: UserRole) => {
     const user = auth.quickDemoLogin(role);
     if (user) {
-      if (role === "staff") {
-        navigate("/staff");
-      } else {
-        navigate("/rider");
-      }
+      setCurrentUserOverride(user);
+      const targetPath = role === "staff" ? "/staff" : "/rider";
+      navigate(targetPath);
     }
   };
 
   const handleSignOut = () => {
+    setCurrentUserOverride(null);
     auth.signout();
     navigate("/");
   };
@@ -2726,7 +2614,7 @@ export default function EasyRidePage() {
 
     // Staff route protection
     if (isStaffPath) {
-      if (!auth.currentUser) {
+      if (!activeUser) {
         return (
           <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
             <div className="mb-6 p-5 rounded-3xl bg-amber-50 border border-amber-200 text-center w-full shadow-xs">
@@ -2749,14 +2637,14 @@ export default function EasyRidePage() {
         );
       }
 
-      if (auth.currentUser.role !== "staff") {
+      if (activeUser.role !== "staff") {
         return (
           <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
             <div className="mb-6 p-6 rounded-3xl bg-rose-50 border border-rose-200 text-center w-full shadow-sm">
               <ShieldAlert size={38} className="text-rose-600 mx-auto mb-2" />
               <h2 className="text-xl font-extrabold text-rose-950">Access Restricted to Staff</h2>
               <p className="text-xs text-rose-800 mt-2 mb-5 leading-5">
-                You are currently signed in as a Customer / Rider (<b>{auth.currentUser.name}</b>). Station worker tools and safety certifications are restricted to Staff accounts.
+                You are currently signed in as a Customer / Rider (<b>{activeUser.name}</b>). Station worker tools and safety certifications are restricted to Staff accounts.
               </p>
               <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5">
                 <button
@@ -2782,7 +2670,7 @@ export default function EasyRidePage() {
           state={state}
           save={save}
           saving={saving}
-          currentUser={auth.currentUser}
+          currentUser={activeUser}
           onOpenAuthModal={openAuthModal}
           onQuickDemoLogin={handleQuickDemoLogin}
         />
@@ -2791,7 +2679,7 @@ export default function EasyRidePage() {
 
     // Rider route protection
     if (isRiderPath) {
-      if (!auth.currentUser) {
+      if (!activeUser) {
         return (
           <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
             <div className="mb-6 p-5 rounded-3xl bg-teal-50 border border-teal-200 text-center w-full shadow-xs">
@@ -2818,7 +2706,7 @@ export default function EasyRidePage() {
         <RiderDashboard
           state={state}
           save={save}
-          currentUser={auth.currentUser}
+          currentUser={activeUser}
           onOpenAuthModal={openAuthModal}
           onQuickDemoLogin={handleQuickDemoLogin}
         />
@@ -2829,12 +2717,12 @@ export default function EasyRidePage() {
     return (
       <GuestDashboard
         state={state}
-        currentUser={auth.currentUser}
+        currentUser={activeUser}
         onOpenAuthModal={openAuthModal}
         onQuickDemoLogin={handleQuickDemoLogin}
       />
     );
-  }, [state, loading, error, isStaffPath, isRiderPath, save, saving, auth.currentUser]);
+  }, [state, loading, error, isStaffPath, isRiderPath, save, saving, activeUser]);
 
   // Full-page Auth route (/login, /signup, etc.)
   if (isAuthRoute) {
@@ -2843,7 +2731,7 @@ export default function EasyRidePage() {
         <div>
           <Topbar
             activePath={path}
-            currentUser={auth.currentUser}
+            currentUser={activeUser}
             onOpenRoleModal={() => setRoleModalOpen(true)}
             onOpenAuthModal={openAuthModal}
             onSignOut={handleSignOut}
@@ -2876,7 +2764,7 @@ export default function EasyRidePage() {
       <div>
         <Topbar
           activePath={path}
-          currentUser={auth.currentUser}
+          currentUser={activeUser}
           onOpenRoleModal={() => setRoleModalOpen(true)}
           onOpenAuthModal={openAuthModal}
           onSignOut={handleSignOut}
