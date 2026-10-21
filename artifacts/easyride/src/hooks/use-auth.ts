@@ -20,6 +20,16 @@ const AUTH_EVENT = "easyride_auth_change";
 
 export const DEFAULT_USERS: EasyRideUser[] = [
   {
+    id: "user-atugonza",
+    name: "Atugonza",
+    email: "atugonza@easyride.ug",
+    password: "password123",
+    role: "rider",
+    phone: "+256 772 100 200",
+    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80",
+    createdAt: "2026-01-15T09:00:00.000Z",
+  },
+  {
     id: "user-rider-demo",
     name: "Alex Kigozi",
     email: "rider@easyride.ug",

@@ -1,0 +1,1594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="width=device-width, initial-scale=1.0" name="viewport">
+  <title>BikeRent - Find and Book Your Next Ride</title>
+  <!-- Google Fonts: Inter & Outfit -->
+  <link href="https://fonts.googleapis.com" rel="preconnect">
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN with Forms & Container Queries -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <!-- Tailwind Config -->
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              dark: '#083c3e',      /* Deep forest pine / dark teal */
+              primary: '#0e4a4e',   /* Main deep teal */
+              accent: '#065f46',    /* Emerald shade */
+              gold: '#f59e0b',      /* Sunshine yellow / warm amber */
+              goldLight: '#fef3c7',
+              mint: '#10b981',      /* Fresh mint green */
+              mintLight: '#d1fae5',
+              surface: '#f6f9f8',   /* Crisp clean off-white / light mint gray */
+              border: '#e2ece9'
+            }
+          },
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            display: ['Outfit', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Custom Styles -->
+  <style>
+    /* Custom Range Slider Styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: transparent;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 6px;
+      cursor: pointer;
+      background: #083c3e;
+      border-radius: 9999px;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      height: 18px;
+      width: 18px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #083c3e;
+      cursor: pointer;
+      -webkit-appearance: none;
+      margin-top: -6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.25);
+    }
+    /* Pattern background for bike card images */
+    .bike-card-backdrop {
+      background: linear-gradient(135deg, #eaf2f1 0%, #d8e5e3 100%);
+    }
+    .hero-mesh-overlay {
+      background-image: radial-gradient(rgba(245, 158, 11, 0.12) 1px, transparent 1px);
+      background-size: 16px 16px;
+    }
+    /* Smooth modal transitions */
+    .modal-backdrop {
+      background-color: rgba(8, 60, 62, 0.6);
+      backdrop-filter: blur(4px);
+    }
+  </style>
+</head>
+<body class="bg-[#f6f9f8] text-slate-800 font-sans antialiased selection:bg-brand-mint selection:text-white min-h-screen">
+
+  <!-- BEGIN: Top Announcement Banner -->
+  <header class="bg-brand-dark text-slate-200 text-xs py-2 px-4 sm:px-8 border-b border-white/10" data-purpose="top-announcement-bar">
+    <div class="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 font-medium">
+      <div class="flex items-center space-x-6">
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          Free Delivery on rentals above Shs 150,000
+        </span>
+        <span class="flex items-center gap-1.5">
+          <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          100% Verified Fleet &amp; Secure Payments
+        </span>
+      </div>
+      <div class="flex items-center space-x-5 text-slate-300">
+        <button id="my-orders-btn" class="hover:text-white flex items-center gap-1 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          My Orders <span id="orders-badge-count" class="ml-1 px-1.5 py-0.2 bg-brand-gold text-brand-dark rounded-full text-[10px] font-bold">0</span>
+        </button>
+        <span class="text-white/20">|</span>
+        <div id="user-profile-btn" class="flex items-center gap-2 cursor-pointer group">
+          <div class="w-5 h-5 rounded-full bg-brand-gold text-brand-dark flex items-center justify-center font-bold text-[10px]">A</div>
+          <span class="text-slate-200 group-hover:text-white transition">HELLO, <strong class="text-white">ATUGONZA</strong></span>
+          <svg class="w-3 h-3 text-slate-400 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </header>
+  <!-- END: Top Announcement Banner -->
+
+  <!-- BEGIN: Main Navigation Bar -->
+  <nav class="bg-white sticky top-0 z-40 border-b border-brand-border/60 shadow-sm" data-purpose="primary-navigation">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between gap-6">
+      <!-- Brand Logo -->
+      <a href="#" class="flex items-center space-x-3 shrink-0 no-underline">
+        <div class="w-10 h-10 rounded-xl bg-brand-dark flex items-center justify-center text-white shadow-md shadow-brand-dark/20 border border-emerald-800">
+          <svg class="w-6 h-6 text-brand-gold" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.2" viewBox="0 0 24 24">
+            <circle cx="5.5" cy="17.5" r="3.5"></circle>
+            <circle cx="18.5" cy="17.5" r="3.5"></circle>
+            <path d="M15 17.5V11L12 7H9L7 13"></path>
+            <path d="M12 17.5V13h3.5"></path>
+            <path d="M8 8h3"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center">
+            <span class="text-xl font-extrabold tracking-tight font-display text-brand-dark">Bike</span>
+            <span class="text-xl font-extrabold tracking-tight font-display text-brand-gold">Rent</span>
+            <span class="ml-1.5 px-1.5 py-0.5 text-[9px] font-bold bg-brand-mintLight text-brand-dark rounded">UG</span>
+          </div>
+          <p class="text-[10px] tracking-wider font-semibold text-slate-400 uppercase">Your Trusted Ride Partner</p>
+        </div>
+      </a>
+
+      <!-- Search Input Center -->
+      <div class="flex-1 max-w-2xl hidden md:block">
+        <div class="relative flex items-center">
+          <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <input id="search-input" class="w-full pl-10 pr-24 py-2.5 bg-slate-50 border border-slate-200 rounded-full text-sm text-slate-700 placeholder-slate-400 focus:outline-none focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/10 transition" placeholder="Search for bikes, brands, or rental locations..." type="text">
+          <button id="search-btn" class="absolute right-1.5 px-5 py-1.5 bg-brand-dark hover:bg-brand-primary text-white text-xs font-semibold rounded-full shadow-sm transition hover:scale-[1.02] active:scale-95 cursor-pointer" type="button">
+            Search
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Actions / Notifications / Profile -->
+      <div class="flex items-center space-x-4 shrink-0">
+        <button id="notifications-btn" aria-label="Notifications" class="relative p-2 rounded-full text-slate-600 hover:text-brand-dark hover:bg-slate-100 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          <span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-brand-gold ring-2 ring-white"></span>
+        </button>
+
+        <button id="favorites-btn" aria-label="Favorites" class="p-2 rounded-full text-slate-600 hover:text-brand-dark hover:bg-slate-100 transition cursor-pointer">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+        </button>
+
+        <button id="live-hubs-btn" class="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-brand-mintLight text-brand-dark hover:bg-emerald-200 transition cursor-pointer">
+          <svg class="w-3.5 h-3.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          Live Hubs (4 Open)
+        </button>
+      </div>
+    </div>
+  </nav>
+  <!-- END: Main Navigation Bar -->
+
+  <!-- BEGIN: Breadcrumb Bar -->
+  <div class="max-w-7xl mx-auto px-4 sm:px-8 py-3 text-xs text-slate-500 flex items-center space-x-2">
+    <a class="hover:text-brand-dark transition" href="#">Home</a>
+    <span>›</span>
+    <span class="text-brand-dark font-semibold">Bike Rentals</span>
+  </div>
+  <!-- END: Breadcrumb Bar -->
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-8 pb-16 space-y-7">
+    <!-- BEGIN: Shop by Category Row -->
+    <section class="space-y-3" data-purpose="category-tabs" id="categories-section">
+      <div class="flex items-center space-x-2 text-brand-dark">
+        <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+        </svg>
+        <h2 class="text-base font-bold font-display tracking-tight text-slate-900">Shop by Category</h2>
+      </div>
+
+      <!-- Category Filter Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3" id="category-tabs-container">
+        <!-- All Bikes (Active by default) -->
+        <button data-cat="all" class="cat-btn flex flex-col items-center justify-center p-4 bg-brand-dark text-white rounded-2xl shadow-sm ring-2 ring-brand-dark transition transform hover:-translate-y-0.5 cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center mb-2 text-brand-gold">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-bold tracking-wide">All Bikes</span>
+          <span class="text-[11px] text-brand-mint font-medium">100 bikes</span>
+        </button>
+
+        <!-- Electric -->
+        <button data-cat="electric" class="cat-btn flex flex-col items-center justify-center p-4 bg-white border border-brand-border rounded-2xl text-slate-700 hover:border-brand-primary hover:shadow-sm transition transform hover:-translate-y-0.5 group cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-brand-mintLight text-slate-500 group-hover:text-brand-dark flex items-center justify-center mb-2 transition">
+            <svg class="w-5 h-5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold group-hover:text-brand-dark">Electric</span>
+          <span class="text-[11px] text-slate-400">0 bikes</span>
+        </button>
+
+        <!-- Mountain -->
+        <button data-cat="mountain" class="cat-btn flex flex-col items-center justify-center p-4 bg-white border border-brand-border rounded-2xl text-slate-700 hover:border-brand-primary hover:shadow-sm transition transform hover:-translate-y-0.5 group cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-brand-mintLight text-slate-500 group-hover:text-brand-dark flex items-center justify-center mb-2 transition">
+            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold group-hover:text-brand-dark">Mountain</span>
+          <span class="text-[11px] text-slate-400">40 bikes</span>
+        </button>
+
+        <!-- City -->
+        <button data-cat="city" class="cat-btn flex flex-col items-center justify-center p-4 bg-white border border-brand-border rounded-2xl text-slate-700 hover:border-brand-primary hover:shadow-sm transition transform hover:-translate-y-0.5 group cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-brand-mintLight text-slate-500 group-hover:text-brand-dark flex items-center justify-center mb-2 transition">
+            <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold group-hover:text-brand-dark">City</span>
+          <span class="text-[11px] text-slate-400">14 bikes</span>
+        </button>
+
+        <!-- Racing -->
+        <button data-cat="racing" class="cat-btn flex flex-col items-center justify-center p-4 bg-white border border-brand-border rounded-2xl text-slate-700 hover:border-brand-primary hover:shadow-sm transition transform hover:-translate-y-0.5 group cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-brand-mintLight text-slate-500 group-hover:text-brand-dark flex items-center justify-center mb-2 transition">
+            <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold group-hover:text-brand-dark">Racing</span>
+          <span class="text-[11px] text-slate-400">0 bikes</span>
+        </button>
+
+        <!-- Hybrid -->
+        <button data-cat="hybrid" class="cat-btn flex flex-col items-center justify-center p-4 bg-white border border-brand-border rounded-2xl text-slate-700 hover:border-brand-primary hover:shadow-sm transition transform hover:-translate-y-0.5 group cursor-pointer">
+          <div class="w-10 h-10 rounded-full bg-slate-50 group-hover:bg-brand-mintLight text-slate-500 group-hover:text-brand-dark flex items-center justify-center mb-2 transition">
+            <svg class="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+          </div>
+          <span class="text-sm font-semibold group-hover:text-brand-dark">Hybrid</span>
+          <span class="text-[11px] text-slate-400">26 bikes</span>
+        </button>
+      </div>
+    </section>
+    <!-- END: Shop by Category Row -->
+
+    <!-- BEGIN: Hero Search & Map Preview Hub -->
+    <section class="bg-white rounded-3xl border border-brand-border shadow-sm p-6 lg:p-8" data-purpose="search-hub-banner">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <!-- Left Hero Content & Quick Booking Controls -->
+        <div class="lg:col-span-7 space-y-6">
+          <div>
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-goldLight text-brand-dark rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+              <svg class="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+              Easy Ride Reservation
+            </div>
+            <h1 class="text-3xl sm:text-4xl font-extrabold font-display tracking-tight text-brand-dark leading-tight">Find and Book Your Next Ride</h1>
+            <p class="text-slate-600 text-sm mt-2 max-w-xl">
+              Explore all available bikes, filter by category or station location, and reserve instantly with real-time fleet availability.
+            </p>
+          </div>
+
+          <!-- Quick Select Dropdowns Box -->
+          <div class="bg-brand-surface p-4 sm:p-5 rounded-2xl border border-brand-border space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <!-- Location Select -->
+              <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Location</label>
+                <div class="relative">
+                  <select id="hero-location-select" class="w-full bg-white border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 pr-8 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary appearance-none cursor-pointer">
+                    <option value="all" selected>All Locations</option>
+                    <option value="Makerere Hill Road">Makerere Hill Road Station</option>
+                    <option value="Wandegeya Market">Wandegeya Market Hub</option>
+                    <option value="Kiwatule Rec Centre">Kiwatule Rec Centre</option>
+                    <option value="Ntinda Junction">Ntinda Junction Station</option>
+                    <option value="Bugolobi Village Mall">Bugolobi Village Mall</option>
+                    <option value="Acacia Mall">Acacia Mall Hub</option>
+                    <option value="Nakaserero Market">Nakaserero Market</option>
+                    <option value="Kasubi Tombs">Kasubi Tombs Hub</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2.5 pointer-events-none text-slate-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ride Category Select -->
+              <div>
+                <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Ride Category</label>
+                <div class="relative">
+                  <select id="hero-category-select" class="w-full bg-white border border-slate-200 text-slate-800 text-xs font-semibold rounded-xl px-3 py-2.5 pr-8 focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary appearance-none cursor-pointer">
+                    <option value="all" selected>All Categories</option>
+                    <option value="electric">Electric Bikes (E-Bikes)</option>
+                    <option value="mountain">Mountain Bikes</option>
+                    <option value="city">City Commuters</option>
+                    <option value="racing">Racing Road Bikes</option>
+                    <option value="hybrid">Hybrids</option>
+                  </select>
+                  <div class="absolute inset-y-0 right-0 flex items-center px-2.5 pointer-events-none text-slate-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center gap-3 pt-1">
+              <button id="hero-find-rides-btn" class="inline-flex items-center gap-2 px-6 py-2.5 bg-brand-dark hover:bg-brand-primary text-white text-xs font-bold rounded-xl shadow-md shadow-brand-dark/20 transition transform hover:-translate-y-0.5 active:translate-y-0 cursor-pointer">
+                <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                Find Rides
+              </button>
+              <button id="hero-browse-bikes-btn" class="px-4 py-2.5 bg-brand-gold hover:bg-amber-500 text-brand-dark text-xs font-bold rounded-xl shadow-sm transition cursor-pointer">
+                Browse Bikes
+              </button>
+              <button id="hero-view-categories-btn" class="px-4 py-2.5 bg-white hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl border border-slate-200 hover:border-slate-300 transition cursor-pointer">
+                View Top Categories
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Fleet & Route Map Wireframe Container -->
+        <div class="lg:col-span-5 h-full">
+          <div id="map-preview-card" class="w-full h-full min-h-[220px] rounded-2xl border-2 border-dashed border-brand-primary/25 bg-gradient-to-br from-brand-surface to-[#edf4f3] flex flex-col items-center justify-center p-6 text-center relative overflow-hidden group cursor-pointer">
+            <div class="absolute -right-10 -bottom-10 w-44 h-44 rounded-full bg-brand-gold/10 pointer-events-none"></div>
+            <div class="absolute -left-10 -top-10 w-36 h-36 rounded-full bg-brand-mint/10 pointer-events-none"></div>
+            <div class="w-14 h-14 rounded-2xl bg-white shadow-sm border border-brand-border flex items-center justify-center mb-3 text-brand-dark group-hover:scale-110 transition duration-300">
+              <svg class="w-7 h-7 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path>
+              </svg>
+            </div>
+            <h3 class="font-display font-bold text-sm tracking-wide text-brand-dark">[Browse Rides Map &amp; Fleet Wireframe]</h3>
+            <p class="text-xs text-slate-500 mt-1 max-w-xs">Interactive station &amp; route exploration across Kampala hubs</p>
+            <span class="mt-3 px-3 py-1 bg-white text-brand-primary text-[11px] font-bold rounded-full border border-brand-border shadow-xs">
+              Live GPS Sync Active
+            </span>
+          </div>
+        </div>
+      </div>
+    </section>
+    <!-- END: Hero Search & Map Preview Hub -->
+
+    <!-- BEGIN: Catalog Main Layout (Sidebar + Bike Grid) -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-7" id="explore-fleet">
+      <!-- BEGIN: Left Filters Sidebar -->
+      <aside class="lg:col-span-1 space-y-5" data-purpose="catalog-filters">
+        <div class="bg-white rounded-2xl border border-brand-border p-5 shadow-sm space-y-6">
+          <!-- Filters Header -->
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+            <div class="flex items-center space-x-2 text-brand-dark">
+              <svg class="w-4 h-4 text-brand-dark" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+              <h3 class="font-display font-bold text-sm text-brand-dark">Filters</h3>
+            </div>
+            <span id="active-filter-badge" class="px-2 py-0.5 text-[11px] font-semibold bg-brand-mintLight text-brand-dark rounded-full">1 active</span>
+          </div>
+
+          <!-- Price Range Filter -->
+          <div class="space-y-3">
+            <div class="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
+              <svg class="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+              <span>Price Range (Hourly)</span>
+            </div>
+
+            <!-- Custom Dual-like Styled Track -->
+            <div class="pt-2 px-1">
+              <input id="price-range-input" class="w-full cursor-pointer" max="2000" min="0" step="10" type="range" value="2000">
+            </div>
+            <div class="flex items-center justify-between text-xs text-slate-500 pt-1">
+              <div class="bg-brand-surface px-2.5 py-1.5 rounded-lg border border-brand-border font-semibold text-brand-dark">
+                Shs 0
+              </div>
+              <span class="text-slate-400 font-medium">to</span>
+              <div id="price-range-display" class="bg-brand-surface px-2.5 py-1.5 rounded-lg border border-brand-border font-semibold text-brand-dark">
+                Shs 2000
+              </div>
+            </div>
+          </div>
+
+          <hr class="border-slate-100">
+
+          <!-- Brand Filter -->
+          <div class="space-y-2.5">
+            <div class="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+              <span>Brand</span>
+            </div>
+            <label class="flex items-center space-x-2.5 text-xs text-slate-700 cursor-pointer select-none">
+              <input id="brand-certified-checkbox" checked class="w-4 h-4 rounded text-brand-dark focus:ring-brand-primary border-slate-300" type="checkbox">
+              <span class="font-semibold text-brand-dark">BikeRental Certified</span>
+            </label>
+          </div>
+
+          <hr class="border-slate-100">
+
+          <!-- Availability Filter -->
+          <div class="space-y-2.5">
+            <div class="flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-slate-700">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+              </svg>
+              <span>Availability</span>
+            </div>
+            <label class="flex items-center space-x-2.5 text-xs text-slate-600 cursor-pointer select-none">
+              <input id="in-stock-checkbox" class="w-4 h-4 rounded text-brand-dark focus:ring-brand-primary border-slate-300" type="checkbox">
+              <span>In Stock Only</span>
+            </label>
+          </div>
+
+          <!-- Clear Filters Button -->
+          <div class="pt-2">
+            <button id="clear-filters-btn" class="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl border border-slate-200 transition cursor-pointer">
+              Clear All Filters
+            </button>
+          </div>
+        </div>
+
+        <!-- Station Summary Mini Widget -->
+        <div class="bg-gradient-to-br from-brand-dark to-brand-primary text-white p-5 rounded-2xl shadow-sm space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs uppercase tracking-wider font-semibold text-brand-mint">Campus &amp; City Hubs</span>
+            <span class="w-2 h-2 rounded-full bg-brand-gold animate-ping"></span>
+          </div>
+          <h4 class="font-display font-bold text-sm">Need help picking a bike?</h4>
+          <p class="text-xs text-slate-200 leading-relaxed">
+            All rentals include calibrated helmets, anti-puncture tubes, and instant mobile QR lock unlocks.
+          </p>
+          <a id="rental-terms-link" class="inline-flex items-center gap-1 text-xs text-brand-gold font-bold hover:underline cursor-pointer" href="#">
+            View rental terms ›
+          </a>
+        </div>
+      </aside>
+      <!-- END: Left Filters Sidebar -->
+
+      <!-- BEGIN: Bike Catalog Grid & Controls -->
+      <section class="lg:col-span-3 space-y-5" data-purpose="bike-grid-section">
+        <!-- Header row of the catalog -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3.5 rounded-2xl border border-brand-border shadow-xs">
+          <div class="flex items-center space-x-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-brand-mint"></span>
+            <h3 id="current-category-label" class="font-display font-extrabold text-base text-brand-dark">All Bikes</h3>
+            <span class="text-xs font-medium text-slate-400">· <strong id="products-found-count" class="text-slate-700">100</strong> products found</span>
+          </div>
+          <div class="flex items-center space-x-2 text-xs text-slate-500">
+            <span>Sort by:</span>
+            <select id="sort-select" class="border-0 bg-transparent py-0 pl-1 pr-6 text-xs font-bold text-brand-dark focus:ring-0 cursor-pointer">
+              <option value="popularity">Popularity</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+              <option value="newest">Newest Fleet</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Catalog Bike Cards Grid (Dynamic JS Container) -->
+        <div id="bike-grid-container" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <!-- Cards injected via JavaScript -->
+        </div>
+
+        <!-- BEGIN: Pagination Section -->
+        <div class="flex flex-wrap items-center justify-between gap-4 pt-6 pb-2" data-purpose="catalog-pagination">
+          <!-- Page Number Pill Nav -->
+          <nav id="pagination-controls" aria-label="Pagination" class="flex items-center space-x-1.5 text-xs font-semibold">
+            <!-- Injected via JavaScript -->
+          </nav>
+          <!-- Current count readout -->
+          <div id="pagination-readout" class="text-xs text-slate-500">
+            Showing <span class="font-bold text-slate-800">1 to 8</span> of 100 bikes
+          </div>
+        </div>
+        <!-- END: Pagination Section -->
+      </section>
+      <!-- END: Bike Catalog Grid & Controls -->
+    </div>
+    <!-- END: Catalog Main Layout -->
+
+    <!-- BEGIN: Value Proposition Cards (EasyRide Style) -->
+    <section class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4" data-purpose="value-proposition-cards">
+      <!-- Pricing Guarantee Card -->
+      <div class="bg-white rounded-3xl border border-brand-border p-6 sm:p-8 flex flex-col justify-between shadow-xs">
+        <div class="space-y-3">
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-brand-accent">Clear Price, No Surprises</span>
+          <h3 class="text-2xl font-display font-extrabold text-brand-dark">A simple hourly rate.</h3>
+          <p class="text-slate-600 text-sm max-w-sm">
+            The current configured rate is charged strictly by the hour. Your final transparent amount is auto-calculated when the bicycle is returned.
+          </p>
+        </div>
+        <div class="mt-6 flex items-center gap-3">
+          <div class="inline-flex items-baseline px-5 py-2.5 bg-brand-surface border border-brand-border rounded-2xl">
+            <span class="text-xl font-extrabold font-display text-brand-dark">Shs 100</span>
+            <span class="text-xs font-semibold text-slate-500 ml-1.5 uppercase">Per Hour Avg</span>
+          </div>
+          <span class="text-xs text-slate-400 font-medium">Instant mobile money &amp; card checkout</span>
+        </div>
+      </div>
+
+      <!-- Fleet Quality Card -->
+      <div class="bg-gradient-to-br from-[#eaf2f1] to-[#e1ecea] rounded-3xl border border-brand-border/60 p-6 sm:p-8 flex flex-col justify-between shadow-xs relative overflow-hidden">
+        <div class="space-y-3 relative z-10">
+          <span class="text-[11px] font-extrabold uppercase tracking-wider text-brand-dark">Before You Roll</span>
+          <h3 class="text-2xl font-display font-extrabold text-brand-dark">Recorded condition is your first check.</h3>
+          <p class="text-slate-700 text-sm max-w-sm">
+            Availability reflects live recorded status. Inspect the bicycle before leaving the docking bay and report any issue to station marshals.
+          </p>
+        </div>
+        <div class="mt-6 flex items-center space-x-2 text-xs font-bold text-brand-dark relative z-10">
+          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+          </svg>
+          <span>Student &amp; Campus Verified Friendly</span>
+        </div>
+      </div>
+    </section>
+    <!-- END: Value Proposition Cards -->
+  </main>
+
+  <!-- BEGIN: Footer -->
+  <footer class="border-t border-brand-border bg-white text-slate-500 text-xs py-6 mt-12" data-purpose="site-footer">
+    <div class="max-w-7xl mx-auto px-4 sm:px-8 flex flex-wrap justify-between items-center gap-3">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-brand-dark font-display">BikeRent Uganda</span>
+        <span>—</span>
+        <span>Guest Public Dashboard · Makerere routes · Kampala, Uganda</span>
+      </div>
+      <div class="flex items-center space-x-4 text-[11px]">
+        <a class="hover:text-brand-dark" href="#">Safety Guidelines</a>
+        <a class="hover:text-brand-dark" href="#">Station Locations</a>
+        <a class="hover:text-brand-dark" href="#">Terms of Service</a>
+      </div>
+    </div>
+  </footer>
+  <!-- END: Footer -->
+
+  <!-- BEGIN: Modal - Rent Bike Confirmation -->
+  <div id="rental-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-brand-border space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-dark text-white flex items-center justify-center">
+            <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          </div>
+          <div>
+            <h3 class="font-display font-extrabold text-base text-brand-dark">Instant Bike Reservation</h3>
+            <p class="text-[11px] text-slate-400">Direct pickup at station bay</p>
+          </div>
+        </div>
+        <button id="close-rental-modal-btn" class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="bg-brand-surface p-4 rounded-2xl border border-brand-border flex items-center gap-3.5">
+        <div class="w-16 h-16 rounded-xl bg-slate-200 flex items-center justify-center text-brand-primary shrink-0">
+          <svg class="w-10 h-10" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24">
+            <circle cx="5.5" cy="17.5" r="3.5"></circle>
+            <circle cx="18.5" cy="17.5" r="3.5"></circle>
+            <path d="M15 17.5V11L12 7H9L7 13"></path>
+            <path d="M12 17.5V13h3.5"></path>
+            <path d="M8 8h3"></path>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <span id="modal-bike-code" class="text-[10px] font-mono font-bold bg-white px-2 py-0.5 rounded border border-slate-200 text-slate-600">#BK-005-KMP</span>
+            <span class="text-[10px] font-bold text-emerald-600">● Ready for Pickup</span>
+          </div>
+          <h4 id="modal-bike-name" class="font-display font-bold text-sm text-brand-dark mt-0.5">GT Aggressor Pro</h4>
+          <p id="modal-bike-station" class="text-xs text-slate-500">Bugolobi Village Mall</p>
+        </div>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Rider Name</label>
+          <input id="modal-customer-name" type="text" value="Atugonza" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-brand-primary/20">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 mb-1">Mobile Money Number</label>
+          <input id="modal-customer-phone" type="text" value="+256 772 100 200" placeholder="+256 7XX XXX XXX" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-800 focus:ring-2 focus:ring-brand-primary/20">
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="font-bold text-slate-700">Estimated Duration</label>
+            <span id="modal-hours-display" class="font-bold text-brand-primary">2 hours</span>
+          </div>
+          <input id="modal-hours-slider" type="range" min="1" max="12" value="2" class="w-full">
+        </div>
+        <div class="p-3 bg-brand-goldLight rounded-xl border border-amber-200 flex justify-between items-center font-bold">
+          <span class="text-amber-900">Estimated Rental Fee</span>
+          <span id="modal-total-price" class="text-base text-brand-dark font-display">Shs 300</span>
+        </div>
+      </div>
+
+      <div class="flex gap-2.5 pt-2">
+        <button id="confirm-rent-btn" class="flex-1 py-3 bg-brand-dark hover:bg-brand-primary text-white text-xs font-bold rounded-xl shadow-md transition flex items-center justify-center gap-1.5 cursor-pointer">
+          <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"></path></svg>
+          Confirm &amp; Unlock Bike
+        </button>
+        <button id="cancel-rental-btn" class="px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer">
+          Cancel
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- END: Modal - Rent Bike Confirmation -->
+
+  <!-- BEGIN: Modal - My Orders -->
+  <div id="orders-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-brand-border space-y-4 max-h-[85vh] flex flex-col animate-in fade-in duration-200">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-dark text-white flex items-center justify-center">
+            <svg class="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          </div>
+          <div>
+            <h3 class="font-display font-extrabold text-base text-brand-dark">My Active &amp; Past Rides</h3>
+            <p class="text-[11px] text-slate-400">Atugonza · Student ID #AT-8821</p>
+          </div>
+        </div>
+        <button id="close-orders-modal-btn" class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div id="orders-list-container" class="space-y-3 overflow-y-auto flex-1 pr-1 text-xs">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <div class="pt-3 border-t border-slate-100 flex justify-end">
+        <button id="orders-modal-done-btn" class="px-5 py-2.5 bg-brand-dark text-white text-xs font-bold rounded-xl cursor-pointer">
+          Close Orders
+        </button>
+      </div>
+    </div>
+  </div>
+  <!-- END: Modal - My Orders -->
+
+  <!-- BEGIN: Modal - Live Hubs -->
+  <div id="hubs-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-brand-border space-y-4 max-h-[85vh] flex flex-col">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <div class="flex items-center gap-2">
+          <div class="w-8 h-8 rounded-lg bg-brand-mintLight text-brand-dark flex items-center justify-center font-bold">
+            <svg class="w-4 h-4 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+          </div>
+          <div>
+            <h3 class="font-display font-extrabold text-base text-brand-dark">Kampala Live Stations</h3>
+            <p class="text-[11px] text-slate-400">Real-time dock availability &amp; marshals on site</p>
+          </div>
+        </div>
+        <button id="close-hubs-modal-btn" class="w-8 h-8 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center cursor-pointer">
+          ✕
+        </button>
+      </div>
+
+      <div class="space-y-2.5 overflow-y-auto flex-1 pr-1 text-xs" id="hubs-list-container">
+        <!-- Stations List -->
+      </div>
+    </div>
+  </div>
+  <!-- END: Modal - Live Hubs -->
+
+  <!-- Toast Notification -->
+  <div id="toast-notification" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-brand-dark text-white px-4 py-3 rounded-2xl shadow-xl flex items-center gap-3 border border-brand-mint/40">
+    <div class="w-6 h-6 rounded-full bg-brand-mint flex items-center justify-center text-brand-dark font-bold text-xs">✓</div>
+    <div>
+      <h5 id="toast-title" class="font-bold text-xs">Rental Confirmed!</h5>
+      <p id="toast-desc" class="text-[11px] text-slate-200">Bike unlocked. Enjoy your ride!</p>
+    </div>
+  </div>
+
+  <!-- BEGIN: Client-Side Application JavaScript (No Backend Required) -->
+  <script>
+    // Master Fleet of 100 Kampala Bikes
+    const BASE_BIKES = [
+      // Exact cards from template:
+      {
+        id: "BK-001-KMP",
+        code: "#BK-001-KMP",
+        name: "Trek FX 3 Disc",
+        brand: "BikeRental",
+        type: "city",
+        station: "Makerere Hill Road",
+        rate: 100,
+        rating: 4.5,
+        reviews: 25,
+        status: "maintenance", // Under maintenance
+        certified: true,
+        imageBg: "bg-[#646874]"
+      },
+      {
+        id: "BK-002-KMP",
+        code: "#BK-002-KMP",
+        name: "Giant Escape 2",
+        brand: "BikeRental",
+        type: "city",
+        station: "Wandegeya Market",
+        rate: 100,
+        rating: 4.5,
+        reviews: 25,
+        status: "maintenance",
+        certified: true,
+        imageBg: "bg-[#646874]"
+      },
+      {
+        id: "BK-003-KMP",
+        code: "#BK-003-KMP",
+        name: "Specialized Sirrus",
+        brand: "BikeRental",
+        type: "city",
+        station: "Kiwatule Rec Centre",
+        rate: 100,
+        rating: 4.5,
+        reviews: 25,
+        status: "rented", // Currently Rented
+        certified: true,
+        imageBg: "bg-slate-100"
+      },
+      {
+        id: "BK-004-KMP",
+        code: "#BK-004-KMP",
+        name: "Cannondale Quick 4",
+        brand: "BikeRental",
+        type: "city",
+        station: "Ntinda Junction",
+        rate: 150,
+        rating: 4.5,
+        reviews: 25,
+        status: "maintenance",
+        certified: true,
+        imageBg: "bg-[#646874]"
+      },
+      {
+        id: "BK-005-KMP",
+        code: "#BK-005-KMP",
+        name: "GT Aggressor Pro",
+        brand: "BikeRental",
+        type: "mountain",
+        station: "Bugolobi Village Mall",
+        rate: 150,
+        rating: 4.5,
+        reviews: 25,
+        status: "available",
+        certified: true,
+        imageBg: "bike-card-backdrop"
+      },
+      {
+        id: "BK-006-KMP",
+        code: "#BK-006-KMP",
+        name: "Raleigh Cadent 2",
+        brand: "BikeRental",
+        type: "city",
+        station: "Acacia Mall",
+        rate: 100,
+        rating: 4.5,
+        reviews: 25,
+        status: "available",
+        certified: true,
+        imageBg: "bike-card-backdrop"
+      },
+      {
+        id: "BK-007-KMP",
+        code: "#BK-007-KMP",
+        name: "Fuji Feather",
+        brand: "BikeRental",
+        type: "hybrid",
+        station: "Nakaserero Market",
+        rate: 120,
+        rating: 4.5,
+        reviews: 25,
+        status: "available",
+        certified: true,
+        imageBg: "bike-card-backdrop"
+      },
+      {
+        id: "BK-008-KMP",
+        code: "#BK-008-KMP",
+        name: "Kona Dew",
+        brand: "BikeRental",
+        type: "city",
+        station: "Kasubi Tombs",
+        rate: 100,
+        rating: 4.5,
+        reviews: 25,
+        status: "available",
+        certified: true,
+        imageBg: "bike-card-backdrop"
+      }
+    ];
+
+    // Stations
+    const STATIONS = [
+      { name: "Makerere Hill Road", open: true, count: 18, desc: "Main Campus Library Gate" },
+      { name: "Wandegeya Market", open: true, count: 12, desc: "Market & Plaza Junction" },
+      { name: "Kiwatule Rec Centre", open: true, count: 15, desc: "Kabaka's Trail Way" },
+      { name: "Ntinda Junction", open: true, count: 10, desc: "Kisementi & Capital Shoppers" },
+      { name: "Bugolobi Village Mall", open: true, count: 14, desc: "Spring Road Hub" },
+      { name: "Acacia Mall", open: true, count: 16, desc: "Kololo Hill Avenue" },
+      { name: "Nakaserero Market", open: true, count: 8, desc: "Downtown Commercial Dock" },
+      { name: "Kasubi Tombs", open: true, count: 7, desc: "Heritage Gateway Bay" }
+    ];
+
+    // Complete the full 100 fleet to match exact category counts:
+    // Mountain: 40 | City: 14 | Hybrid: 26 | Other: 20 -> Total 100.
+    function generateFullFleet() {
+      const fleet = [...BASE_BIKES];
+      const stationsList = STATIONS.map(s => s.name);
+      
+      const mountainModels = [
+        "Trek Marlin 7", "Giant Talon 29", "Specialized Rockhopper Comp", "Cannondale Trail 8",
+        "Scott Aspect 950", "Marin Bobcat Trail 3", "Polygon Siskiu D5", "Cube Aim Race",
+        "Kona Mahuna", "Co-op Cycles DRT 1.1", "Trek Roscoe 7", "Giant ATX 27.5",
+        "Diamondback Overdrive", "Santa Cruz Chameleon", "Norco Storm 4"
+      ];
+      
+      const cityModels = [
+        "Linus Roadster Sport", "Public C7 Commuter", "Marin Presidio 1", "Trek District 4",
+        "Priority Classic Plus", "Electra Loft 7D"
+      ];
+
+      const hybridModels = [
+        "Marin Fairfax 2", "Schwinn Discover", "Trek FX 2 Disc", "Specialized Sirrus X",
+        "Giant Roam Disc", "Cannondale Quick CX 3", "Kona Splice", "Jamis Allegro A3"
+      ];
+
+      let idCounter = 9;
+
+      // Add remaining Mountain bikes up to 40 (currently 1 in base)
+      for (let i = 0; i < 39; i++) {
+        const numStr = String(idCounter++).padStart(3, '0');
+        const model = mountainModels[i % mountainModels.length] + ` (#${i + 1})`;
+        fleet.push({
+          id: `BK-${numStr}-KMP`,
+          code: `#BK-${numStr}-KMP`,
+          name: model,
+          brand: "BikeRental",
+          type: "mountain",
+          station: stationsList[i % stationsList.length],
+          rate: (i % 3 === 0) ? 150 : (i % 3 === 1 ? 120 : 100),
+          rating: 4.5,
+          reviews: 18 + (i % 15),
+          status: (i % 6 === 0) ? "rented" : (i % 11 === 0 ? "maintenance" : "available"),
+          certified: true,
+          imageBg: (i % 11 === 0) ? "bg-[#646874]" : (i % 6 === 0 ? "bg-slate-100" : "bike-card-backdrop")
+        });
+      }
+
+      // Add remaining City bikes up to 14 (currently 6 in base)
+      for (let i = 0; i < 8; i++) {
+        const numStr = String(idCounter++).padStart(3, '0');
+        const model = cityModels[i % cityModels.length] + ` (#${i + 1})`;
+        fleet.push({
+          id: `BK-${numStr}-KMP`,
+          code: `#BK-${numStr}-KMP`,
+          name: model,
+          brand: "BikeRental",
+          type: "city",
+          station: stationsList[(i + 2) % stationsList.length],
+          rate: 100,
+          rating: 4.6,
+          reviews: 20 + (i % 10),
+          status: (i % 4 === 0) ? "rented" : "available",
+          certified: true,
+          imageBg: (i % 4 === 0) ? "bg-slate-100" : "bike-card-backdrop")
+        });
+      }
+
+      // Add remaining Hybrid bikes up to 26 (currently 1 in base)
+      for (let i = 0; i < 25; i++) {
+        const numStr = String(idCounter++).padStart(3, '0');
+        const model = hybridModels[i % hybridModels.length] + ` (#${i + 1})`;
+        fleet.push({
+          id: `BK-${numStr}-KMP`,
+          code: `#BK-${numStr}-KMP`,
+          name: model,
+          brand: "BikeRental",
+          type: "hybrid",
+          station: stationsList[(i + 4) % stationsList.length],
+          rate: (i % 2 === 0) ? 120 : 100,
+          rating: 4.5,
+          reviews: 15 + (i % 12),
+          status: (i % 5 === 0) ? "rented" : "available",
+          certified: true,
+          imageBg: (i % 5 === 0) ? "bg-slate-100" : "bike-card-backdrop")
+        });
+      }
+
+      // Add 20 Campus Cruisers to bring total to 100
+      for (let i = 0; i < 20; i++) {
+        const numStr = String(idCounter++).padStart(3, '0');
+        fleet.push({
+          id: `BK-${numStr}-KMP`,
+          code: `#BK-${numStr}-KMP`,
+          name: `Campus Cruiser ${i + 1}`,
+          brand: "BikeRental",
+          type: "city",
+          station: stationsList[i % stationsList.length],
+          rate: 80,
+          rating: 4.4,
+          reviews: 14 + (i % 8),
+          status: "available",
+          certified: true,
+          imageBg: "bike-card-backdrop"
+        });
+      }
+
+      return fleet;
+    }
+
+    // State Store (with LocalStorage persistence)
+    const STORAGE_KEY = "bikerent_customer_fleet_v1";
+    const ORDERS_KEY = "bikerent_customer_orders_v1";
+
+    let fleet = [];
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        fleet = JSON.parse(saved);
+      }
+    } catch (e) {}
+
+    if (!fleet || fleet.length === 0) {
+      fleet = generateFullFleet();
+      saveFleet();
+    }
+
+    let orders = [];
+    try {
+      const savedOrders = localStorage.getItem(ORDERS_KEY);
+      if (savedOrders) {
+        orders = JSON.parse(savedOrders);
+      }
+    } catch (e) {}
+
+    function saveFleet() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fleet));
+      } catch (e) {}
+    }
+
+    function saveOrders() {
+      try {
+        localStorage.setItem(ORDERS_KEY, JSON.stringify(orders));
+        updateOrdersBadge();
+      } catch (e) {}
+    }
+
+    function updateOrdersBadge() {
+      const badge = document.getElementById("orders-badge-count");
+      if (badge) {
+        badge.textContent = orders.filter(o => o.status === "active").length;
+      }
+    }
+
+    // App Filter & Pagination State
+    let state = {
+      category: "all",
+      location: "all",
+      searchQuery: "",
+      maxPrice: 2000,
+      certifiedOnly: true,
+      inStockOnly: false,
+      sortBy: "popularity",
+      currentPage: 1,
+      itemsPerPage: 8,
+      selectedBikeForRent: null
+    };
+
+    // DOM Elements
+    const gridContainer = document.getElementById("bike-grid-container");
+    const paginationControls = document.getElementById("pagination-controls");
+    const paginationReadout = document.getElementById("pagination-readout");
+    const currentCategoryLabel = document.getElementById("current-category-label");
+    const productsFoundCount = document.getElementById("products-found-count");
+    const searchInput = document.getElementById("search-input");
+    const priceRangeInput = document.getElementById("price-range-input");
+    const priceRangeDisplay = document.getElementById("price-range-display");
+    const inStockCheckbox = document.getElementById("in-stock-checkbox");
+    const brandCertifiedCheckbox = document.getElementById("brand-certified-checkbox");
+    const sortSelect = document.getElementById("sort-select");
+    const activeFilterBadge = document.getElementById("active-filter-badge");
+
+    // Modal Elements
+    const rentalModal = document.getElementById("rental-modal");
+    const ordersModal = document.getElementById("orders-modal");
+    const hubsModal = document.getElementById("hubs-modal");
+    const modalBikeCode = document.getElementById("modal-bike-code");
+    const modalBikeName = document.getElementById("modal-bike-name");
+    const modalBikeStation = document.getElementById("modal-bike-station");
+    const modalHoursSlider = document.getElementById("modal-hours-slider");
+    const modalHoursDisplay = document.getElementById("modal-hours-display");
+    const modalTotalPrice = document.getElementById("modal-total-price");
+    const confirmRentBtn = document.getElementById("confirm-rent-btn");
+    const ordersListContainer = document.getElementById("orders-list-container");
+    const hubsListContainer = document.getElementById("hubs-list-container");
+
+    // Render Bike Card HTML
+    function createBikeCard(bike) {
+      const isAvailable = bike.status === "available";
+      const isRented = bike.status === "rented";
+      const isMaintenance = bike.status === "maintenance";
+
+      let topMedia = "";
+      let buttonHtml = "";
+
+      if (isMaintenance) {
+        topMedia = `
+          <div class="h-44 bg-[#646874] flex flex-col items-center justify-center text-center p-4">
+            <span class="text-white font-bold text-sm tracking-wider uppercase font-display">UNDER MAINTENANCE</span>
+            <span class="text-slate-300 text-xs mt-1 font-normal">Being serviced</span>
+          </div>
+        `;
+        buttonHtml = `
+          <button disabled class="w-full py-2.5 bg-[#e9ecef] text-slate-500 font-bold text-xs rounded-xl flex items-center justify-center cursor-not-allowed border border-slate-300/80 shadow-xs">
+            Under Maintenance
+          </button>
+        `;
+      } else if (isRented) {
+        topMedia = `
+          <div class="relative h-44 bg-slate-100 flex items-center justify-center overflow-hidden">
+            <span class="absolute top-3 left-3 px-2 py-0.5 bg-white/90 text-slate-600 text-[10px] font-mono font-bold rounded shadow-xs z-10">
+              ${bike.code}
+            </span>
+            <span class="absolute top-3 right-3 px-2.5 py-0.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 text-[9px] font-extrabold uppercase rounded-full z-10 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full bg-brand-primary"></span> Currently Rented
+            </span>
+            <div class="text-slate-300 transform group-hover:scale-105 transition duration-300">
+              <svg class="w-28 h-28" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24">
+                <circle cx="5.5" cy="17.5" r="3.5"></circle>
+                <circle cx="18.5" cy="17.5" r="3.5"></circle>
+                <path d="M15 17.5V11L12 7H9L7 13"></path>
+                <path d="M12 17.5V13h3.5"></path>
+                <path d="M8 8h3"></path>
+              </svg>
+            </div>
+            <div class="absolute bottom-2 inset-x-2 py-1 bg-brand-primary/90 text-white text-[10px] font-bold text-center rounded">
+              Will be available soon
+            </div>
+          </div>
+        `;
+        buttonHtml = `
+          <button disabled class="w-full py-2.5 bg-slate-100 text-slate-400 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 cursor-not-allowed border border-slate-200">
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            Currently Rented
+          </button>
+        `;
+      } else {
+        topMedia = `
+          <div class="relative h-44 bike-card-backdrop flex items-center justify-center overflow-hidden">
+            <span class="absolute top-3 left-3 px-2 py-0.5 bg-white/90 text-slate-600 text-[10px] font-mono font-bold rounded shadow-xs">
+              ${bike.code}
+            </span>
+            <span class="absolute top-3 right-3 px-2.5 py-0.5 bg-brand-mintLight text-brand-dark border border-brand-mint/30 text-[10px] font-extrabold uppercase rounded-full">
+              ● Available
+            </span>
+            <div class="text-brand-primary transform group-hover:scale-105 transition duration-300">
+              <svg class="w-28 h-28" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" viewBox="0 0 24 24">
+                <circle cx="5.5" cy="17.5" r="3.5"></circle>
+                <circle cx="18.5" cy="17.5" r="3.5"></circle>
+                <path d="M15 17.5V11L12 7H9L7 13"></path>
+                <path d="M12 17.5V13h3.5"></path>
+                <path d="M8 8h3"></path>
+              </svg>
+            </div>
+          </div>
+        `;
+        buttonHtml = `
+          <button onclick="openRentalModal('${bike.id}')" class="w-full py-2.5 bg-brand-dark hover:bg-brand-primary active:bg-brand-dark text-white font-bold text-xs rounded-xl shadow-sm flex items-center justify-center gap-1.5 transition transform hover:scale-[1.02] cursor-pointer">
+            <svg class="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+            </svg>
+            Rent Now
+          </button>
+        `;
+      }
+
+      return `
+        <article class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition duration-200 flex flex-col justify-between group" data-bike-id="${bike.id}">
+          <div>
+            ${topMedia}
+            <div class="p-5 space-y-2">
+              <h4 class="font-bold text-base text-slate-900 leading-snug font-display">${bike.name}</h4>
+              <p class="text-xs text-slate-400 font-medium">${bike.brand}</p>
+              <div class="flex items-center text-xs font-semibold text-slate-800 pt-0.5">
+                <span class="text-slate-900">★★★★☆</span>
+                <span class="ml-1.5 font-bold text-slate-900 text-xs">${bike.rating}</span>
+                <span class="ml-1 text-slate-400 font-normal">(${bike.reviews})</span>
+              </div>
+              <div class="flex items-baseline space-x-1 pt-1">
+                <span class="text-lg font-extrabold text-slate-900 font-display">Shs ${bike.rate}</span>
+                <span class="text-xs text-slate-400 font-normal">/hour</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-xs text-slate-500 pt-0.5">
+                <svg class="w-3.5 h-3.5 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                  <path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path>
+                </svg>
+                <span class="truncate">${bike.station}</span>
+              </div>
+            </div>
+          </div>
+          <div class="p-5 pt-0 space-y-3">
+            <span class="inline-block px-2 py-1 text-[10px] font-bold tracking-wider bg-slate-100 text-slate-500 rounded uppercase">HOURLY RATE</span>
+            ${buttonHtml}
+          </div>
+        </article>
+      `;
+    }
+
+    // Filter & Sort Logic
+    function getFilteredBikes() {
+      return fleet.filter(bike => {
+        // Category filter
+        if (state.category !== "all") {
+          if (bike.type.toLowerCase() !== state.category.toLowerCase()) return false;
+        }
+
+        // Location filter
+        if (state.location !== "all") {
+          if (!bike.station.toLowerCase().includes(state.location.toLowerCase())) return false;
+        }
+
+        // Search Query
+        if (state.searchQuery.trim()) {
+          const q = state.searchQuery.toLowerCase().trim();
+          const matches = bike.name.toLowerCase().includes(q) ||
+                          bike.code.toLowerCase().includes(q) ||
+                          bike.station.toLowerCase().includes(q) ||
+                          bike.type.toLowerCase().includes(q);
+          if (!matches) return false;
+        }
+
+        // Max Price
+        if (bike.rate > state.maxPrice) return false;
+
+        // In Stock Only
+        if (state.inStockOnly && bike.status !== "available") return false;
+
+        // Brand Certified
+        if (state.certifiedOnly && !bike.certified) return false;
+
+        return true;
+      }).sort((a, b) => {
+        if (state.sortBy === "price-low") return a.rate - b.rate;
+        if (state.sortBy === "price-high") return b.rate - a.rate;
+        if (state.sortBy === "newest") return b.id.localeCompare(a.id);
+        return 0; // default popularity preserves natural order
+      });
+    }
+
+    // Render Catalog & Pagination
+    function renderCatalog() {
+      const filtered = getFilteredBikes();
+      const totalBikes = filtered.length;
+      const totalPages = Math.max(1, Math.ceil(totalBikes / state.itemsPerPage));
+
+      // Correct page if out of bounds
+      if (state.currentPage > totalPages) state.currentPage = totalPages;
+
+      const startIndex = (state.currentPage - 1) * state.itemsPerPage;
+      const pageBikes = filtered.slice(startIndex, startIndex + state.itemsPerPage);
+
+      // Render Grid
+      if (pageBikes.length === 0) {
+        gridContainer.innerHTML = `
+          <div class="col-span-full py-16 text-center bg-white rounded-2xl border border-brand-border p-8 space-y-3">
+            <div class="w-12 h-12 rounded-full bg-slate-100 text-slate-400 mx-auto flex items-center justify-center">
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"></path></svg>
+            </div>
+            <h4 class="font-bold text-slate-700">No matching bicycles found</h4>
+            <p class="text-xs text-slate-500 max-w-sm mx-auto">Try loosening your search filters or resetting the price slider to see more bikes.</p>
+            <button onclick="resetFilters()" class="px-4 py-2 bg-brand-dark text-white rounded-xl text-xs font-bold cursor-pointer">Reset All Filters</button>
+          </div>
+        `;
+      } else {
+        gridContainer.innerHTML = pageBikes.map(createBikeCard).join("");
+      }
+
+      // Update Counts & Labels
+      productsFoundCount.textContent = totalBikes;
+      currentCategoryLabel.textContent = state.category === "all" ? "All Bikes" : (state.category.charAt(0).toUpperCase() + state.category.slice(1) + " Bikes");
+
+      const endCount = Math.min(startIndex + state.itemsPerPage, totalBikes);
+      paginationReadout.innerHTML = `Showing <span class="font-bold text-slate-800">${totalBikes === 0 ? 0 : startIndex + 1} to ${endCount}</span> of ${totalBikes} bikes`;
+
+      // Render Pagination Buttons
+      renderPaginationButtons(totalPages);
+
+      // Update Active Filter Count Badge
+      let activeCount = 0;
+      if (state.category !== "all") activeCount++;
+      if (state.location !== "all") activeCount++;
+      if (state.searchQuery.trim()) activeCount++;
+      if (state.maxPrice < 2000) activeCount++;
+      if (state.inStockOnly) activeCount++;
+      if (state.certifiedOnly) activeCount++;
+      activeFilterBadge.textContent = `${activeCount} active`;
+    }
+
+    function renderPaginationButtons(totalPages) {
+      let html = `
+        <button onclick="goToPage(${state.currentPage - 1})" ${state.currentPage === 1 ? 'disabled class="w-8 h-8 rounded-lg border border-brand-border bg-white text-slate-300 cursor-not-allowed flex items-center justify-center"' : 'class="w-8 h-8 rounded-lg border border-brand-border bg-white text-slate-500 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"'} aria-label="Previous page">
+          &lt;
+        </button>
+      `;
+
+      // Build pages array
+      const pages = [];
+      if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        if (state.currentPage > 3) pages.push("...");
+        const start = Math.max(2, state.currentPage - 1);
+        const end = Math.min(totalPages - 1, state.currentPage + 1);
+        for (let i = start; i <= end; i++) {
+          if (!pages.includes(i)) pages.push(i);
+        }
+        if (state.currentPage < totalPages - 2) pages.push("...");
+        if (!pages.includes(totalPages)) pages.push(totalPages);
+      }
+
+      pages.forEach(p => {
+        if (p === "...") {
+          html += `<span class="px-1 text-slate-400">...</span>`;
+        } else if (p === state.currentPage) {
+          html += `<button class="w-8 h-8 rounded-lg bg-brand-dark text-white font-bold flex items-center justify-center shadow-xs cursor-default">${p}</button>`;
+        } else {
+          html += `<button onclick="goToPage(${p})" class="w-8 h-8 rounded-lg border border-brand-border bg-white text-slate-700 hover:bg-slate-50 flex items-center justify-center transition cursor-pointer">${p}</button>`;
+        }
+      });
+
+      html += `
+        <button onclick="goToPage(${state.currentPage + 1})" ${state.currentPage === totalPages || totalPages === 0 ? 'disabled class="w-8 h-8 rounded-lg border border-brand-border bg-white text-slate-300 cursor-not-allowed flex items-center justify-center"' : 'class="w-8 h-8 rounded-lg border border-brand-border bg-white text-slate-500 hover:bg-slate-100 flex items-center justify-center transition cursor-pointer"'} aria-label="Next page">
+          &gt;
+        </button>
+      `;
+
+      paginationControls.innerHTML = html;
+    }
+
+    function goToPage(p) {
+      const filtered = getFilteredBikes();
+      const totalPages = Math.max(1, Math.ceil(filtered.length / state.itemsPerPage));
+      if (p < 1 || p > totalPages) return;
+      state.currentPage = p;
+      renderCatalog();
+      document.getElementById("explore-fleet").scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function resetFilters() {
+      state.category = "all";
+      state.location = "all";
+      state.searchQuery = "";
+      state.maxPrice = 2000;
+      state.inStockOnly = false;
+      state.certifiedOnly = true;
+      state.sortBy = "popularity";
+      state.currentPage = 1;
+
+      searchInput.value = "";
+      priceRangeInput.value = 2000;
+      priceRangeDisplay.textContent = "Shs 2000";
+      inStockCheckbox.checked = false;
+      brandCertifiedCheckbox.checked = true;
+      sortSelect.value = "popularity";
+      document.getElementById("hero-location-select").value = "all";
+      document.getElementById("hero-category-select").value = "all";
+
+      updateCategoryTabsUI();
+      renderCatalog();
+    }
+
+    // Category Tabs UI update
+    function updateCategoryTabsUI() {
+      document.querySelectorAll(".cat-btn").forEach(btn => {
+        const cat = btn.getAttribute("data-cat");
+        if (cat === state.category) {
+          btn.className = "cat-btn flex flex-col items-center justify-center p-4 bg-brand-dark text-white rounded-2xl shadow-sm ring-2 ring-brand-dark transition transform hover:-translate-y-0.5 cursor-pointer";
+        } else {
+          btn.className = "cat-btn flex flex-col items-center justify-center p-4 bg-white border border-brand-border rounded-2xl text-slate-700 hover:border-brand-primary hover:shadow-sm transition transform hover:-translate-y-0.5 group cursor-pointer";
+        }
+      });
+    }
+
+    // Event Listeners for Filters
+    document.querySelectorAll(".cat-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        state.category = btn.getAttribute("data-cat");
+        state.currentPage = 1;
+        updateCategoryTabsUI();
+        renderCatalog();
+        document.getElementById("explore-fleet").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    });
+
+    searchInput.addEventListener("input", (e) => {
+      state.searchQuery = e.target.value;
+      state.currentPage = 1;
+      renderCatalog();
+    });
+
+    document.getElementById("search-btn").addEventListener("click", () => {
+      renderCatalog();
+      document.getElementById("explore-fleet").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    priceRangeInput.addEventListener("input", (e) => {
+      const val = parseInt(e.target.value);
+      state.maxPrice = val;
+      priceRangeDisplay.textContent = `Shs ${val}`;
+      state.currentPage = 1;
+      renderCatalog();
+    });
+
+    inStockCheckbox.addEventListener("change", (e) => {
+      state.inStockOnly = e.target.checked;
+      state.currentPage = 1;
+      renderCatalog();
+    });
+
+    brandCertifiedCheckbox.addEventListener("change", (e) => {
+      state.certifiedOnly = e.target.checked;
+      state.currentPage = 1;
+      renderCatalog();
+    });
+
+    sortSelect.addEventListener("change", (e) => {
+      state.sortBy = e.target.value;
+      renderCatalog();
+    });
+
+    document.getElementById("clear-filters-btn").addEventListener("click", resetFilters);
+
+    // Hero Dropdown Listeners
+    document.getElementById("hero-find-rides-btn").addEventListener("click", () => {
+      state.location = document.getElementById("hero-location-select").value;
+      state.category = document.getElementById("hero-category-select").value;
+      state.currentPage = 1;
+      updateCategoryTabsUI();
+      renderCatalog();
+      document.getElementById("explore-fleet").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    document.getElementById("hero-browse-bikes-btn").addEventListener("click", () => {
+      document.getElementById("explore-fleet").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    document.getElementById("hero-view-categories-btn").addEventListener("click", () => {
+      document.getElementById("categories-section").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+
+    // Rental Modal Flow
+    window.openRentalModal = function(bikeId) {
+      const bike = fleet.find(b => b.id === bikeId);
+      if (!bike || bike.status !== "available") return;
+
+      state.selectedBikeForRent = bike;
+      modalBikeCode.textContent = bike.code;
+      modalBikeName.textContent = bike.name;
+      modalBikeStation.textContent = bike.station;
+      modalHoursSlider.value = 2;
+      modalHoursDisplay.textContent = "2 hours";
+      modalTotalPrice.textContent = `Shs ${bike.rate * 2}`;
+
+      rentalModal.classList.remove("hidden");
+    };
+
+    modalHoursSlider.addEventListener("input", (e) => {
+      const hours = parseInt(e.target.value);
+      modalHoursDisplay.textContent = `${hours} hour${hours > 1 ? 's' : ''}`;
+      if (state.selectedBikeForRent) {
+        modalTotalPrice.textContent = `Shs ${state.selectedBikeForRent.rate * hours}`;
+      }
+    });
+
+    document.getElementById("close-rental-modal-btn").addEventListener("click", () => {
+      rentalModal.classList.add("hidden");
+    });
+    document.getElementById("cancel-rental-btn").addEventListener("click", () => {
+      rentalModal.classList.add("hidden");
+    });
+
+    confirmRentBtn.addEventListener("click", () => {
+      const bike = state.selectedBikeForRent;
+      if (!bike) return;
+
+      const customerName = document.getElementById("modal-customer-name").value.trim() || "Atugonza";
+      const phone = document.getElementById("modal-customer-phone").value.trim() || "+256 772 100 200";
+      const hours = parseInt(modalHoursSlider.value);
+      const totalAmount = bike.rate * hours;
+
+      // Update bike in fleet
+      bike.status = "rented";
+      saveFleet();
+
+      // Create Order
+      const newOrder = {
+        orderId: `ORD-${Date.now().toString().slice(-6)}`,
+        bikeId: bike.id,
+        bikeName: bike.name,
+        bikeCode: bike.code,
+        customerName: customerName,
+        phone: phone,
+        station: bike.station,
+        hours: hours,
+        totalAmount: totalAmount,
+        startTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date().toLocaleDateString(),
+        status: "active"
+      };
+
+      orders.unshift(newOrder);
+      saveOrders();
+
+      rentalModal.classList.add("hidden");
+      renderCatalog();
+      showToast("Reservation Confirmed!", `${bike.name} unlocked at ${bike.station}. Total: Shs ${totalAmount}`);
+    });
+
+    // Orders Modal Flow
+    document.getElementById("my-orders-btn").addEventListener("click", openOrdersModal);
+    document.getElementById("user-profile-btn").addEventListener("click", openOrdersModal);
+    document.getElementById("close-orders-modal-btn").addEventListener("click", () => {
+      ordersModal.classList.add("hidden");
+    });
+    document.getElementById("orders-modal-done-btn").addEventListener("click", () => {
+      ordersModal.classList.add("hidden");
+    });
+
+    function openOrdersModal() {
+      if (orders.length === 0) {
+        ordersListContainer.innerHTML = `
+          <div class="text-center py-8 text-slate-400 space-y-2">
+            <svg class="w-10 h-10 mx-auto text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8"></path></svg>
+            <p class="font-bold text-slate-600">No active or past rentals yet</p>
+            <p class="text-[11px]">Select any available bike from the catalog to book your first ride.</p>
+          </div>
+        `;
+      } else {
+        ordersListContainer.innerHTML = orders.map(order => `
+          <div class="p-4 rounded-2xl border ${order.status === 'active' ? 'border-brand-mint bg-emerald-50/40' : 'border-slate-200 bg-white'} space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="font-bold text-slate-800">${order.bikeName}</span>
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${order.status === 'active' ? 'bg-brand-mintLight text-brand-dark' : 'bg-slate-100 text-slate-500'}">
+                ${order.status === 'active' ? '● On Ride' : 'Returned'}
+              </span>
+            </div>
+            <div class="flex flex-wrap items-center justify-between text-slate-500 text-[11px] pt-1">
+              <span>Code: <b>${order.bikeCode}</b></span>
+              <span>Hub: <b>${order.station}</b></span>
+              <span>Amount: <b class="text-brand-dark">Shs ${order.totalAmount}</b></span>
+            </div>
+            ${order.status === 'active' ? `
+              <div class="pt-2 flex justify-end">
+                <button onclick="returnBike('${order.orderId}')" class="px-3 py-1.5 bg-brand-dark hover:bg-brand-primary text-white text-[11px] font-bold rounded-lg cursor-pointer transition">
+                  Return Bike &amp; Complete Trip
+                </button>
+              </div>
+            ` : ''}
+          </div>
+        `).join("");
+      }
+
+      ordersModal.classList.remove("hidden");
+    }
+
+    window.returnBike = function(orderId) {
+      const order = orders.find(o => o.orderId === orderId);
+      if (!order) return;
+
+      order.status = "completed";
+      const bike = fleet.find(b => b.id === order.bikeId);
+      if (bike) {
+        bike.status = "available";
+        saveFleet();
+      }
+      saveOrders();
+      openOrdersModal();
+      renderCatalog();
+      showToast("Bike Returned Successfully", `Thank you for riding with BikeRent Uganda! Receipt saved.`);
+    };
+
+    // Live Hubs Modal
+    document.getElementById("live-hubs-btn").addEventListener("click", openHubsModal);
+    document.getElementById("map-preview-card").addEventListener("click", openHubsModal);
+    document.getElementById("close-hubs-modal-btn").addEventListener("click", () => {
+      hubsModal.classList.add("hidden");
+    });
+
+    function openHubsModal() {
+      hubsListContainer.innerHTML = STATIONS.map(station => {
+        const availableInStation = fleet.filter(b => b.station === station.name && b.status === "available").length;
+        return `
+          <div class="p-3.5 rounded-2xl border border-slate-200 bg-white hover:border-brand-primary/40 flex items-center justify-between transition cursor-pointer" onclick="filterByStation('${station.name}')">
+            <div class="flex items-center gap-3">
+              <div class="w-8 h-8 rounded-xl bg-brand-mintLight text-brand-dark flex items-center justify-center font-bold text-xs">
+                ⚲
+              </div>
+              <div>
+                <h5 class="font-bold text-slate-900">${station.name}</h5>
+                <p class="text-[11px] text-slate-400">${station.desc}</p>
+              </div>
+            </div>
+            <div class="text-right">
+              <span class="inline-block px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                ${availableInStation} bikes ready
+              </span>
+              <p class="text-[10px] text-slate-400 mt-0.5">Marshal on duty</p>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      hubsModal.classList.remove("hidden");
+    }
+
+    window.filterByStation = function(stationName) {
+      hubsModal.classList.add("hidden");
+      state.location = stationName;
+      document.getElementById("hero-location-select").value = stationName;
+      state.currentPage = 1;
+      renderCatalog();
+      document.getElementById("explore-fleet").scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
+    // Toast notification helper
+    function showToast(title, desc) {
+      const toast = document.getElementById("toast-notification");
+      document.getElementById("toast-title").textContent = title;
+      document.getElementById("toast-desc").textContent = desc;
+      toast.classList.remove("translate-y-20", "opacity-0");
+      setTimeout(() => {
+        toast.classList.add("translate-y-20", "opacity-0");
+      }, 4000);
+    }
+
+    // Rental Terms Link
+    document.getElementById("rental-terms-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      showToast("Rental Guidelines", "Includes calibrated helmet, anti-puncture tubes & mobile QR unlock.");
+    });
+
+    // Favorites & Notifications buttons
+    document.getElementById("notifications-btn").addEventListener("click", () => {
+      showToast("Notifications", "You have 1 active promotional credit for free weekend rides!");
+    });
+    document.getElementById("favorites-btn").addEventListener("click", () => {
+      showToast("Saved Favorites", "You can bookmark your favorite bike models by clicking their card.");
+    });
+
+    // Initial Render
+    updateOrdersBadge();
+    renderCatalog();
+  </script>
+</body>
+</html>

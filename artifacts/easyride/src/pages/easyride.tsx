@@ -14,6 +14,7 @@ import type {
 import { useEasyRide } from "@/hooks/use-easyride";
 import { useAuth, type EasyRideUser, type UserRole, DEFAULT_USERS } from "@/hooks/use-auth";
 import { AuthCard, AuthModal } from "@/components/auth-modal";
+import { CustomerView } from "@/components/customer-view";
 import { getBikeMeta } from "@/lib/mock-data";
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -545,325 +546,14 @@ function BikeCard({
 // 1. GUEST DASHBOARD (The Public Home Page /)
 // ---------------------------------------------------------------------------
 function GuestDashboard({
-  state,
   currentUser,
-  onOpenAuthModal,
-  onQuickDemoLogin,
 }: {
-  state: EasyRideState;
+  state?: EasyRideState;
   currentUser: EasyRideUser | null;
-  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
-  onQuickDemoLogin: (role: UserRole) => void;
+  onOpenAuthModal?: (mode: "signin" | "signup", role?: UserRole) => void;
+  onQuickDemoLogin?: (role: UserRole) => void;
 }) {
-  const [, navigate] = useLocation();
-  const bikes = state.bicycles;
-  const activeStations = state.stations.filter(s => s.active);
-  const activeStationIds = useMemo(() => new Set(activeStations.map(s => s.id)), [activeStations]);
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const ITEMS_PER_PAGE = 8;
-  const bikesSectionRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [selectedCategory, searchQuery]);
-
-  const availableBikes = useMemo(() => {
-    return bikes.filter(b => b.status === "available" && b.condition !== "faulty" && b.stationId && activeStationIds.has(b.stationId));
-  }, [bikes, activeStationIds]);
-
-  const filteredBikes = useMemo(() => {
-    return availableBikes.filter(bike => {
-      const meta = getBikeMeta(bike);
-      const matchesCategory = selectedCategory === "All" || bike.type.toLowerCase() === selectedCategory.toLowerCase();
-      if (!matchesCategory) return false;
-      if (!searchQuery.trim()) return true;
-      const q = searchQuery.toLowerCase();
-      const station = state.stations.find(s => s.id === bike.stationId);
-      return (
-        bike.code.toLowerCase().includes(q) ||
-        bike.type.toLowerCase().includes(q) ||
-        meta.modelName.toLowerCase().includes(q) ||
-        (station && (station.name.toLowerCase().includes(q) || station.area.toLowerCase().includes(q) || station.landmark.toLowerCase().includes(q)))
-      );
-    });
-  }, [availableBikes, selectedCategory, searchQuery, state.stations]);
-
-  const shouldPaginate = selectedCategory === "All" || filteredBikes.length > ITEMS_PER_PAGE;
-  const totalPages = shouldPaginate ? Math.max(1, Math.ceil(filteredBikes.length / ITEMS_PER_PAGE)) : 1;
-
-  const displayedBikes = useMemo(() => {
-    if (!shouldPaginate) return filteredBikes;
-    const start = (currentPage - 1) * ITEMS_PER_PAGE;
-    return filteredBikes.slice(start, start + ITEMS_PER_PAGE);
-  }, [filteredBikes, shouldPaginate, currentPage, ITEMS_PER_PAGE]);
-
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    bikesSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  };
-
-  return <main className="mx-auto max-w-[1320px] px-5 pb-16 pt-8 md:px-8 md:pt-12">
-    {/* Hero Banner with the Real Rotating Bicycle */}
-    <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-teal-800 to-teal-900 px-6 py-9 text-white md:px-12 md:py-14 shadow-xl">
-      <div className="relative z-[1] max-w-[660px]">
-        {currentUser ? (
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-xs text-white mb-3 border border-white/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span>Signed in as <b>{currentUser.name}</b> ({currentUser.role === "staff" ? "Station Worker" : "Rider"})</span>
-            <button
-              onClick={() => navigate(currentUser.role === "staff" ? "/staff" : "/rider")}
-              className="ml-2 text-amber-300 hover:text-amber-200 underline font-bold cursor-pointer"
-            >
-              Go to Dashboard →
-            </button>
-          </div>
-        ) : (
-          <p className="text-xs font-semibold text-amber-300 uppercase tracking-wider">Book your adventure in just one tap</p>
-        )}
-        <h1 className="display mt-4 text-[clamp(2.8rem,6.5vw,4.8rem)] font-extrabold leading-[.92] tracking-tight">
-          Find your perfect<br/><span className="text-amber-300">ride today</span>
-        </h1>
-        <p className="mt-5 max-w-md text-sm leading-6 text-white/80">
-          Explore our collection of high-quality bikes for every terrain. Whether you're commuting across Makerere, Kikoni, or Wandegeya, we've got you covered.
-        </p>
-        <div className="mt-7 flex flex-wrap items-center gap-3">
-          {currentUser?.role === "rider" ? (
-            <button onClick={() => navigate("/rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
-              <User size={16} /> My Rider Dashboard <ArrowRight size={16}/>
-            </button>
-          ) : currentUser?.role === "staff" ? (
-            <button onClick={() => navigate("/staff")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer">
-              <Wrench size={16} /> My Staff Station Desk <ArrowRight size={16}/>
-            </button>
-          ) : (
-            <>
-              <button onClick={() => onOpenAuthModal("signin", "rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
-                <User size={16} /> Sign In as Rider <ArrowRight size={16}/>
-              </button>
-              <button onClick={() => onOpenAuthModal("signup")} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3.5 text-sm font-semibold text-white transition cursor-pointer">
-                <UserPlus size={15} /> Create Account
-              </button>
-            </>
-          )}
-          <span className="rounded-2xl border border-white/20 px-4 py-2.5 text-xs text-white/80 font-medium">
-            {availableBikes.length} bicycles available now
-          </span>
-        </div>
-      </div>
-
-      {/* Real Continuously Rotating Bicycle */}
-      <div className="absolute -right-10 sm:right-2 md:right-8 lg:right-14 top-1/2 -translate-y-1/2 pointer-events-none select-none flex items-center justify-center opacity-30 md:opacity-100">
-        <div className="absolute w-72 h-72 md:w-96 md:h-96 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>
-        <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[440px] lg:h-[440px] flex items-center justify-center animate-rotate-bike">
-          <img
-            src="/hero-bike.png"
-            alt="Real rotating bicycle"
-            className="w-full h-auto object-contain drop-shadow-[0_20px_35px_rgba(0,0,0,0.45)]"
-          />
-        </div>
-      </div>
-    </section>
-
-    {/* Popular Bikes Section with Responsive Filter Buttons & Search */}
-    <div ref={bikesSectionRef} className="mt-10 flex flex-col gap-4 scroll-mt-20">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="display mt-1 text-2xl font-bold text-teal-900">Explore Available Bikes</h2>
-          <p className="text-sm text-slate-500 mt-1">
-            {selectedCategory === "All" && shouldPaginate && totalPages > 1
-              ? `Browsing all fleet bicycles · Page ${currentPage} of ${totalPages}`
-              : "Filter by category to check availability and specs"}
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="relative w-full sm:w-64">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search model, code, station..."
-              className="w-full pl-8 pr-7 py-2 bg-white rounded-xl text-xs border border-slate-200/90 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-700/30 shadow-xs placeholder:text-slate-400"
-              data-testid="input-search-bikes"
-            />
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                aria-label="Clear search"
-              >
-                <X size={13} />
-              </button>
-            )}
-          </div>
-          <div className="hidden sm:flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-slate-600 shadow-sm border border-slate-100">
-            <Clock3 size={14} className="text-teal-700" />
-            <span>Updated live</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Responsive Category Buttons: All, Electric, Mountain, City, Racing, Hybrid */}
-      <div className="w-full overflow-x-auto no-scrollbar scroll-smooth py-1 -mx-1 px-1">
-        <div className="flex items-center gap-2 min-w-max pb-1" role="tablist" aria-label="Bicycle categories">
-          {bikeCategories.map((cat) => {
-            const isSelected = selectedCategory === cat.id;
-            const count = cat.id === "All"
-              ? availableBikes.length
-              : availableBikes.filter((b) => b.type.toLowerCase() === cat.id.toLowerCase()).length;
-            const Icon = cat.icon;
-            return (
-              <button
-                key={cat.id}
-                role="tab"
-                aria-selected={isSelected}
-                onClick={() => setSelectedCategory(cat.id)}
-                data-testid={`button-filter-${cat.id.toLowerCase()}`}
-                className={`group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-700/60 shadow-xs ${
-                  isSelected
-                    ? "bg-teal-800 text-white shadow-md shadow-teal-900/20 ring-1 ring-teal-900 font-bold"
-                    : "bg-white text-slate-600 hover:text-teal-900 hover:bg-slate-50 border border-slate-200/90 hover:border-teal-800/30 font-semibold"
-                }`}
-              >
-                <span
-                  className={`grid h-6 w-6 place-items-center rounded-lg transition-colors ${
-                    isSelected
-                      ? "bg-teal-700/90 text-amber-300"
-                      : "bg-slate-100 text-slate-500 group-hover:bg-teal-50 group-hover:text-teal-800"
-                  }`}
-                >
-                  <Icon size={14} strokeWidth={2.4} />
-                </span>
-                <span className="text-[13px]">{cat.label}</span>
-                <span
-                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${
-                    isSelected
-                      ? "bg-amber-400 text-teal-950 font-extrabold"
-                      : "bg-slate-100 text-slate-500 group-hover:bg-teal-50 group-hover:text-teal-900"
-                  }`}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>
-
-    {/* Filtered Bikes Grid */}
-    {filteredBikes.length ? (
-      <>
-        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 enter">
-          {displayedBikes.map((bike) => {
-            const station = state.stations.find((s) => s.id === bike.stationId);
-            return (
-              <BikeCard
-                key={bike.id}
-                bike={bike}
-                station={station}
-                rate={state.config.hourlyRate}
-                currency={state.config.currency}
-                onRent={() => navigate(`/rider?station=${bike.stationId}&bike=${bike.id}`)}
-              />
-            );
-          })}
-        </div>
-        {shouldPaginate && totalPages > 1 && (
-          <PaginationControls
-            currentPage={currentPage}
-            totalPages={totalPages}
-            totalItems={filteredBikes.length}
-            pageSize={ITEMS_PER_PAGE}
-            onPageChange={handlePageChange}
-          />
-        )}
-      </>
-    ) : (
-      <div className="bg-white rounded-3xl p-10 text-center shadow-card border border-slate-100/90 mt-5">
-        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-800 mb-3">
-          <Compass size={24} />
-        </div>
-        <h3 className="display text-xl font-bold text-teal-900">
-          No {selectedCategory === "All" ? "" : selectedCategory} bikes match your criteria
-        </h3>
-        <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
-          {searchQuery
-            ? `No bicycles found matching "${searchQuery}". Try a different keyword or clear your search.`
-            : `All ${selectedCategory} bicycles are currently booked or undergoing safety maintenance.`}
-        </p>
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
-            >
-              Clear search
-            </button>
-          )}
-          {selectedCategory !== "All" && (
-            <button
-              onClick={() => setSelectedCategory("All")}
-              className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
-            >
-              Show all categories ({availableBikes.length})
-            </button>
-          )}
-        </div>
-      </div>
-    )}
-
-    {/* Pickup network quick status */}
-    <div className="mt-10 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-2">
-        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-        <span className="text-xs font-bold text-teal-900">Pickup Stations ({activeStations.length} open):</span>
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {activeStations.map((st) => {
-          const atStation = availableBikes.filter((b) => b.stationId === st.id).length;
-          return (
-            <Link
-              key={st.id}
-              href={`/rider?station=${st.id}`}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-teal-50 border border-slate-100 hover:border-teal-200 text-xs text-slate-600 hover:text-teal-900 font-medium transition no-underline"
-            >
-              <MapPin size={11} className="text-teal-700" />
-              <span className="font-semibold text-slate-800">{st.name}</span>
-              <span className="text-[10px] bg-teal-100/70 text-teal-800 px-1.5 py-0.2 rounded-full font-bold">
-                {atStation} bikes
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-    </div>
-
-    <section className="mt-8 grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
-      <div className="bg-white rounded-3xl shadow-card border border-slate-100 flex flex-col justify-between gap-5 overflow-hidden p-6 md:flex-row md:items-center md:p-8">
-        <div>
-          <p className="text-[10px] uppercase tracking-[.18em] text-teal-700 font-bold">Clear price, no surprises</p>
-          <h2 className="display mt-2 text-3xl font-bold text-teal-900">A simple hourly rate.</h2>
-          <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">The current configured rate is charged by the hour. Your final amount is worked out when the bicycle is returned.</p>
-          <div className="mt-5 inline-flex items-baseline gap-2 rounded-2xl bg-amber-50 px-5 py-3 border border-amber-200">
-            <span className="text-2xl font-extrabold text-teal-900">{money(state.config.hourlyRate, state.config.currency)}</span>
-            <span className="text-[10px] uppercase tracking-wider text-teal-700 font-bold">per hour</span>
-          </div>
-        </div>
-        <BikeCardArt/>
-      </div>
-      <div className="relative overflow-hidden rounded-[18px] bg-[#e8e6d7] p-6 md:p-8">
-        <p className="mono text-[10px] uppercase tracking-[.18em] text-[#768376]">Before you roll</p>
-        <h2 className="display mt-2 max-w-sm text-[28px] font-semibold leading-tight">Recorded condition is your first check.</h2>
-        <p className="mt-3 max-w-sm text-sm leading-6 text-[#6d786f]">Availability reflects the latest recorded status, not physical verification. Check the bicycle yourself before leaving. Report a fault to the station worker.</p>
-        <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#476e58]"><ShieldCheck size={16}/> Student & campus friendly</div>
-        <BikeSketch className="bike-doodle text-[#537b61]"/>
-      </div>
-    </section>
-  </main>;
+  return <CustomerView currentUser={currentUser} />;
 }
 
 // ---------------------------------------------------------------------------
@@ -2632,6 +2322,23 @@ export default function EasyRidePage() {
         <footer className="border-t border-[#214f46]/10 px-5 py-6 text-center text-[10px] text-[#849087]">
           EasyRide Bicycle Rental · Frontend LocalStorage Authentication · Kampala, Uganda
         </footer>
+      </div>
+    );
+  }
+
+  if (!isStaffPath) {
+    return (
+      <div className="min-h-screen bg-[#f6f9f8] text-slate-800 font-sans antialiased selection:bg-brand-mint selection:text-white">
+        {loading ? <SkeletonPage /> : error || !state ? <MissingState error={error} retry={retry} /> : page}
+        <AuthModal
+          open={authModalOpen}
+          initialMode={authModalMode}
+          initialRole={authModalRole}
+          stations={state?.stations || []}
+          auth={auth}
+          onClose={() => setAuthModalOpen(false)}
+          onSuccess={handleAuthSuccess}
+        />
       </div>
     );
   }
