@@ -2707,6 +2707,23 @@ export default function StaffDashboard({
         u.name.trim().toLowerCase() === rental.customerName.trim().toLowerCase(),
     );
 
+    // Bays in use at the station the rider picked the bike up from.
+    const baysUsed = station
+      ? state.bicycles.filter((b) => b.stationId === station.id).length
+      : state.bicycles.length;
+
+    // A short spec line for the bike card in the summary.
+    const bikeSpec =
+      meta?.type === "Electric"
+        ? "Battery 92% • Range 48 km"
+        : meta?.type === "Mountain"
+          ? '29" • Full suspension'
+          : meta?.type === "Racing"
+            ? "Carbon race rig • 12-spd"
+            : meta?.type === "Hybrid"
+              ? "Fitness hybrid • 9-spd"
+              : "Urban commuter • 8-spd";
+
     return (
       <StaffReturnFlow
         rentalId={rental.id}
@@ -2724,13 +2741,18 @@ export default function StaffDashboard({
         currency={state.config.currency}
         staffName={staffName}
         flowId={`CHK-${new Date().getFullYear()}-${(rental.id.match(/\d+/g)?.join("").slice(-4) || "0000")}`}
+        baysUsed={baysUsed}
+        baysTotal={16}
+        bikeSpec={bikeSpec}
         onExit={() => setReturnFlowId("")}
         onComplete={(outcome) => {
           closeRental(rental, {
             condition: outcome.condition,
             notes: outcome.notes,
             paymentPaid: outcome.paymentPaid,
-            quarantine: outcome.condition === "faulty",
+            quarantine:
+              outcome.disposition === "maintenance" ||
+              outcome.condition === "faulty",
           });
         }}
       />
