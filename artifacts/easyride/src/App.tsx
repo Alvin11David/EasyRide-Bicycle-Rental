@@ -21,6 +21,8 @@ function Router() {
     <RoutedErrorBoundary>
       <Switch>
         <Route path="/" component={EasyRidePage} />
+        <Route path="/rider" component={EasyRidePage} />
+        <Route path="/staff" component={EasyRidePage} />
         <Route path="/rentals" component={EasyRidePage} />
         <Route path="/operator" component={EasyRidePage} />
         <Route component={NotFound} />
