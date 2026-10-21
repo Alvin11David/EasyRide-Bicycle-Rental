@@ -266,7 +266,15 @@ export function generate100Fleet(): CustomerFleetBike[] {
 const FLEET_STORAGE_KEY = "bikerent_customer_fleet_v1";
 const ORDERS_STORAGE_KEY = "bikerent_customer_orders_v1";
 
-export function CustomerView({ currentUser }: { currentUser: EasyRideUser | null }) {
+export function CustomerView({
+  currentUser,
+  onSignOut,
+  onBackToGuest,
+}: {
+  currentUser?: EasyRideUser | null;
+  onSignOut?: () => void;
+  onBackToGuest?: () => void;
+}) {
   const [fleet, setFleet] = useState<CustomerFleetBike[]>(() => {
     if (typeof window === "undefined") return generate100Fleet();
     try {
@@ -324,6 +332,7 @@ export function CustomerView({ currentUser }: { currentUser: EasyRideUser | null
   const [rentPhone, setRentPhone] = useState<string>(currentUser?.phone || "+256 772 100 200");
   const [ordersModalOpen, setOrdersModalOpen] = useState<boolean>(false);
   const [hubsModalOpen, setHubsModalOpen] = useState<boolean>(false);
+  const [userMenuOpen, setUserMenuOpen] = useState<boolean>(false);
   const [toast, setToast] = useState<{ title: string; desc: string } | null>(null);
 
   const catalogSectionRef = useRef<HTMLDivElement>(null);
@@ -440,8 +449,8 @@ export function CustomerView({ currentUser }: { currentUser: EasyRideUser | null
                 100% Verified Fleet &amp; Secure Payments
               </span>
             </div>
-            <div className="flex items-center space-x-5 text-slate-300">
-              <button onClick={() => setOrdersModalOpen(true)} className="hover:text-white flex items-center gap-1 transition cursor-pointer">
+            <div className="flex items-center space-x-4 text-slate-300">
+              <button onClick={() => setOrdersModalOpen(true)} className="hover:text-white flex items-center gap-1 transition cursor-pointer text-xs">
                 <svg className="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
                 </svg>
@@ -451,13 +460,92 @@ export function CustomerView({ currentUser }: { currentUser: EasyRideUser | null
                 </span>
               </button>
               <span className="text-white/20">|</span>
-              <div onClick={() => setOrdersModalOpen(true)} className="flex items-center gap-2 cursor-pointer group">
-                <div className="w-5 h-5 rounded-full bg-brand-gold text-brand-dark flex items-center justify-center font-bold text-[10px]">A</div>
-                <span className="text-slate-200 group-hover:text-white transition">HELLO, <strong className="text-white">{currentUser?.name || "ATUGONZA"}</strong></span>
-                <svg className="w-3 h-3 text-slate-400 group-hover:text-white transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
+
+              {/* User Profile with Dropdown Menu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 cursor-pointer group text-xs text-slate-200 hover:text-white focus:outline-none"
+                >
+                  <div className="w-5 h-5 rounded-full bg-brand-gold text-brand-dark flex items-center justify-center font-bold text-[10px]">
+                    {(currentUser?.name || "Atugonza")[0].toUpperCase()}
+                  </div>
+                  <span>
+                    HELLO, <strong className="text-white">{currentUser?.name?.toUpperCase() || "ATUGONZA"}</strong>
+                  </span>
+                  <svg
+                    className={`w-3 h-3 text-slate-400 group-hover:text-white transition transform ${userMenuOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
+                  </svg>
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white shadow-xl border border-slate-100 p-2 text-slate-700 z-50 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="px-3 py-2 border-b border-slate-100 mb-1">
+                      <div className="font-bold text-xs text-brand-dark">{currentUser?.name || "Atugonza"}</div>
+                      <div className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Customer · Rider
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => { setUserMenuOpen(false); setOrdersModalOpen(true); }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-700 rounded-xl hover:bg-slate-50 transition cursor-pointer"
+                    >
+                      <span>🛍️</span>
+                      <span>My Orders ({activeOrdersCount})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        if (onBackToGuest) onBackToGuest();
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-teal-800 rounded-xl hover:bg-teal-50 transition cursor-pointer"
+                    >
+                      <span>←</span>
+                      <span>Return to Guest Dashboard</span>
+                    </button>
+                    <div className="border-t border-slate-100 my-1"></div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        if (onSignOut) onSignOut();
+                      }}
+                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-rose-600 rounded-xl hover:bg-rose-50 transition cursor-pointer"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                      </svg>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* Direct Visible Sign Out Button */}
+              {onSignOut && (
+                <>
+                  <span className="text-white/20">|</span>
+                  <button
+                    type="button"
+                    onClick={onSignOut}
+                    className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-rose-600 hover:text-white text-slate-200 text-[10px] font-bold transition cursor-pointer flex items-center gap-1 shadow-xs"
+                    title="Sign Out to Guest Dashboard"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
+                    </svg>
+                    <span>Sign Out</span>
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -550,10 +638,27 @@ export function CustomerView({ currentUser }: { currentUser: EasyRideUser | null
         {/* END: Main Navigation Bar */}
 
         {/* BEGIN: Breadcrumb Bar */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 text-xs text-slate-500 flex items-center space-x-2">
-          <Link className="hover:text-brand-dark transition no-underline text-slate-500" href="/">Home</Link>
-          <span>›</span>
-          <span className="text-brand-dark font-semibold">Bike Rentals</span>
+        <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 text-xs text-slate-500 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <button
+              type="button"
+              onClick={onBackToGuest}
+              className="hover:text-brand-dark transition text-teal-800 font-semibold cursor-pointer flex items-center gap-1"
+            >
+              <span>← Guest Home</span>
+            </button>
+            <span>›</span>
+            <span className="text-brand-dark font-semibold">Customer Dashboard (Bike Rentals)</span>
+          </div>
+          {onSignOut && (
+            <button
+              type="button"
+              onClick={onSignOut}
+              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer flex items-center gap-1"
+            >
+              Sign out of {currentUser?.name || "Atugonza"} →
+            </button>
+          )}
         </div>
         {/* END: Breadcrumb Bar */}
 

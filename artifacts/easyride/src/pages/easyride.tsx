@@ -228,6 +228,13 @@ function Topbar({
           ) : (
             <div className="flex items-center gap-2">
               <button
+                onClick={() => onQuickDemoLogin("rider")}
+                className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition cursor-pointer shadow-xs"
+                title="Sign in immediately as Customer Atugonza"
+              >
+                <span>⚡ Customer (Atugonza)</span>
+              </button>
+              <button
                 onClick={() => onOpenAuthModal("signin")}
                 className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-teal-900 hover:bg-slate-50 rounded-xl transition cursor-pointer border border-slate-200/80"
                 data-testid="button-signin"
@@ -545,734 +552,368 @@ function BikeCard({
 // ---------------------------------------------------------------------------
 // 1. GUEST DASHBOARD (The Public Home Page /)
 // ---------------------------------------------------------------------------
+// 1. GUEST DASHBOARD (The Public Home Page /)
+// ---------------------------------------------------------------------------
 function GuestDashboard({
+  state,
   currentUser,
+  onOpenAuthModal,
+  onQuickDemoLogin,
+  onSignOut,
 }: {
-  state?: EasyRideState;
+  state: EasyRideState;
   currentUser: EasyRideUser | null;
-  onOpenAuthModal?: (mode: "signin" | "signup", role?: UserRole) => void;
-  onQuickDemoLogin?: (role: UserRole) => void;
+  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onQuickDemoLogin: (role: UserRole) => void;
+  onSignOut?: () => void;
 }) {
-  return <CustomerView currentUser={currentUser} />;
+  const [, navigate] = useLocation();
+  const bikes = state.bicycles;
+  const activeStations = state.stations.filter(s => s.active);
+  const activeStationIds = useMemo(() => new Set(activeStations.map(s => s.id)), [activeStations]);
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const ITEMS_PER_PAGE = 8;
+  const bikesSectionRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedCategory, searchQuery]);
+
+  const availableBikes = useMemo(() => {
+    return bikes.filter(b => b.status === "available" && b.condition !== "faulty" && b.stationId && activeStationIds.has(b.stationId));
+  }, [bikes, activeStationIds]);
+
+  const filteredBikes = useMemo(() => {
+    return availableBikes.filter(bike => {
+      const meta = getBikeMeta(bike);
+      const matchesCategory = selectedCategory === "All" || bike.type.toLowerCase() === selectedCategory.toLowerCase();
+      if (!matchesCategory) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const station = state.stations.find(s => s.id === bike.stationId);
+      return (
+        bike.code.toLowerCase().includes(q) ||
+        bike.type.toLowerCase().includes(q) ||
+        meta.modelName.toLowerCase().includes(q) ||
+        (station && (station.name.toLowerCase().includes(q) || station.area.toLowerCase().includes(q) || station.landmark.toLowerCase().includes(q)))
+      );
+    });
+  }, [availableBikes, selectedCategory, searchQuery, state.stations]);
+
+  const shouldPaginate = selectedCategory === "All" || filteredBikes.length > ITEMS_PER_PAGE;
+  const totalPages = shouldPaginate ? Math.max(1, Math.ceil(filteredBikes.length / ITEMS_PER_PAGE)) : 1;
+
+  const displayedBikes = useMemo(() => {
+    if (!shouldPaginate) return filteredBikes;
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredBikes.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredBikes, shouldPaginate, currentPage, ITEMS_PER_PAGE]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    bikesSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
+  return <main className="mx-auto max-w-[1320px] px-5 pb-16 pt-8 md:px-8 md:pt-12">
+    {/* Hero Banner with the Real Rotating Bicycle */}
+    <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-teal-800 to-teal-900 px-6 py-9 text-white md:px-12 md:py-14 shadow-xl">
+      <div className="relative z-[1] max-w-[660px]">
+        {currentUser ? (
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/15 backdrop-blur-sm text-xs text-white mb-3 border border-white/20">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span>Signed in as <b>{currentUser.name}</b> ({currentUser.role === "staff" ? "Station Worker" : "Rider"})</span>
+            <button
+              onClick={() => navigate(currentUser.role === "staff" ? "/staff" : "/rider")}
+              className="ml-2 text-amber-300 hover:text-amber-200 underline font-bold cursor-pointer"
+            >
+              Go to {currentUser.role === "staff" ? "Staff Station Desk" : "Customer Dashboard"} →
+            </button>
+            {onSignOut && (
+              <>
+                <span className="text-white/40">|</span>
+                <button
+                  onClick={onSignOut}
+                  className="text-white/80 hover:text-white underline cursor-pointer"
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <p className="text-xs font-semibold text-amber-300 uppercase tracking-wider">Book your adventure in just one tap</p>
+        )}
+        <h1 className="display mt-4 text-[clamp(2.8rem,6.5vw,4.8rem)] font-extrabold leading-[.92] tracking-tight">
+          Find your perfect<br/><span className="text-amber-300">ride today</span>
+        </h1>
+        <p className="mt-5 max-w-md text-sm leading-6 text-white/80">
+          Explore our collection of high-quality bikes for every terrain. Whether you're commuting across Makerere, Kikoni, or Wandegeya, we've got you covered.
+        </p>
+        <div className="mt-7 flex flex-wrap items-center gap-3">
+          {currentUser?.role === "rider" ? (
+            <button onClick={() => navigate("/rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
+              <User size={16} /> My Rider Dashboard <ArrowRight size={16}/>
+            </button>
+          ) : currentUser?.role === "staff" ? (
+            <button onClick={() => navigate("/staff")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer">
+              <Wrench size={16} /> My Staff Station Desk <ArrowRight size={16}/>
+            </button>
+          ) : (
+            <>
+              <button onClick={() => onOpenAuthModal("signin", "rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
+                <User size={16} /> Sign In as Rider <ArrowRight size={16}/>
+              </button>
+              <button onClick={() => onOpenAuthModal("signup")} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3.5 text-sm font-semibold text-white transition cursor-pointer">
+                <UserPlus size={15} /> Create Account
+              </button>
+            </>
+          )}
+          <span className="rounded-2xl border border-white/20 px-4 py-2.5 text-xs text-white/80 font-medium">
+            {availableBikes.length} bicycles available now
+          </span>
+        </div>
+      </div>
+
+      {/* Real Continuously Rotating Bicycle */}
+      <div className="absolute -right-10 sm:right-2 md:right-8 lg:right-14 top-1/2 -translate-y-1/2 pointer-events-none select-none flex items-center justify-center opacity-30 md:opacity-100">
+        <div className="absolute w-72 h-72 md:w-96 md:h-96 rounded-full bg-amber-400/10 blur-3xl pointer-events-none"></div>
+        <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 lg:w-[440px] lg:h-[440px] flex items-center justify-center animate-rotate-bike">
+          <img
+            src="/hero-bike.png"
+            alt="Real rotating bicycle"
+            className="w-full h-auto object-contain drop-shadow-[0_20px_35px_rgba(0,0,0,0.45)]"
+          />
+        </div>
+      </div>
+    </section>
+
+    {/* Popular Bikes Section with Responsive Filter Buttons & Search */}
+    <div ref={bikesSectionRef} className="mt-10 flex flex-col gap-4 scroll-mt-20">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="display mt-1 text-2xl font-bold text-teal-900">Explore Available Bikes</h2>
+          <p className="text-sm text-slate-500 mt-1">
+            {selectedCategory === "All" && shouldPaginate && totalPages > 1
+              ? `Browsing all fleet bicycles · Page ${currentPage} of ${totalPages}`
+              : "Filter by category to check availability and specs"}
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative w-full sm:w-64">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search model, code, station..."
+              className="w-full pl-8 pr-7 py-2 bg-white rounded-xl text-xs border border-slate-200/90 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-700/30 shadow-xs placeholder:text-slate-400"
+              data-testid="input-search-bikes"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                aria-label="Clear search"
+              >
+                <X size={13} />
+              </button>
+            )}
+          </div>
+          <div className="hidden sm:flex items-center gap-2 rounded-2xl bg-white px-3 py-2 text-xs text-slate-600 shadow-sm border border-slate-100">
+            <Clock3 size={14} className="text-teal-700" />
+            <span>Updated live</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Responsive Category Buttons: All, Electric, Mountain, City, Racing, Hybrid */}
+      <div className="w-full overflow-x-auto no-scrollbar scroll-smooth py-1 -mx-1 px-1">
+        <div className="flex items-center gap-2 min-w-max pb-1" role="tablist" aria-label="Bicycle categories">
+          {bikeCategories.map((cat) => {
+            const isSelected = selectedCategory === cat.id;
+            const count = cat.id === "All"
+              ? availableBikes.length
+              : availableBikes.filter((b) => b.type.toLowerCase() === cat.id.toLowerCase()).length;
+            const Icon = cat.icon;
+            return (
+              <button
+                key={cat.id}
+                role="tab"
+                aria-selected={isSelected}
+                onClick={() => setSelectedCategory(cat.id)}
+                data-testid={`button-filter-${cat.id.toLowerCase()}`}
+                className={`group inline-flex items-center gap-2.5 px-4 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 cursor-pointer select-none active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-700/60 shadow-xs ${
+                  isSelected
+                    ? "bg-teal-800 text-white shadow-md shadow-teal-900/20 ring-1 ring-teal-900 font-bold"
+                    : "bg-white text-slate-600 hover:text-teal-900 hover:bg-slate-50 border border-slate-200/90 hover:border-teal-800/30 font-semibold"
+                }`}
+              >
+                <span
+                  className={`grid h-6 w-6 place-items-center rounded-lg transition-colors ${
+                    isSelected
+                      ? "bg-teal-700/90 text-amber-300"
+                      : "bg-slate-100 text-slate-500 group-hover:bg-teal-50 group-hover:text-teal-800"
+                  }`}
+                >
+                  <Icon size={14} strokeWidth={2.4} />
+                </span>
+                <span className="text-[13px]">{cat.label}</span>
+                <span
+                  className={`text-[10px] px-2 py-0.5 rounded-full font-bold transition-colors ${
+                    isSelected
+                      ? "bg-amber-400 text-teal-950 font-extrabold"
+                      : "bg-slate-100 text-slate-500 group-hover:bg-teal-50 group-hover:text-teal-900"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+
+    {/* Filtered Bikes Grid */}
+    {filteredBikes.length ? (
+      <>
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 enter">
+          {displayedBikes.map((bike) => {
+            const station = state.stations.find((s) => s.id === bike.stationId);
+            return (
+              <BikeCard
+                key={bike.id}
+                bike={bike}
+                station={station}
+                rate={state.config.hourlyRate}
+                currency={state.config.currency}
+                onRent={() => navigate(`/rider?station=${bike.stationId}&bike=${bike.id}`)}
+              />
+            );
+          })}
+        </div>
+        {shouldPaginate && totalPages > 1 && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredBikes.length}
+            pageSize={ITEMS_PER_PAGE}
+            onPageChange={handlePageChange}
+          />
+        )}
+      </>
+    ) : (
+      <div className="bg-white rounded-3xl p-10 text-center shadow-card border border-slate-100/90 mt-5">
+        <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-teal-50 text-teal-800 mb-3">
+          <Compass size={24} />
+        </div>
+        <h3 className="display text-xl font-bold text-teal-900">
+          No {selectedCategory === "All" ? "" : selectedCategory} bikes match your criteria
+        </h3>
+        <p className="mt-1 text-xs text-slate-500 max-w-sm mx-auto">
+          {searchQuery
+            ? `No bicycles found matching "${searchQuery}". Try a different keyword or clear your search.`
+            : `All ${selectedCategory} bicycles are currently booked or undergoing safety maintenance.`}
+        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery("")}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl transition cursor-pointer"
+            >
+              Clear search
+            </button>
+          )}
+          {selectedCategory !== "All" && (
+            <button
+              onClick={() => setSelectedCategory("All")}
+              className="px-4 py-2 bg-teal-800 hover:bg-teal-900 text-white text-xs font-semibold rounded-xl transition cursor-pointer"
+            >
+              Show all categories ({availableBikes.length})
+            </button>
+          )}
+        </div>
+      </div>
+    )}
+
+    {/* Pickup network quick status */}
+    <div className="mt-10 rounded-2xl bg-white p-4 shadow-sm border border-slate-100 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-2">
+        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+        <span className="text-xs font-bold text-teal-900">Pickup Stations ({activeStations.length} open):</span>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        {activeStations.map((st) => {
+          const atStation = availableBikes.filter((b) => b.stationId === st.id).length;
+          return (
+            <Link
+              key={st.id}
+              href={`/rider?station=${st.id}`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 hover:bg-teal-50 border border-slate-100 hover:border-teal-200 text-xs text-slate-600 hover:text-teal-900 font-medium transition no-underline"
+            >
+              <MapPin size={11} className="text-teal-700" />
+              <span className="font-semibold text-slate-800">{st.name}</span>
+              <span className="text-[10px] bg-teal-100/70 text-teal-800 px-1.5 py-0.2 rounded-full font-bold">
+                {atStation} bikes
+              </span>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+
+    <section className="mt-8 grid gap-5 lg:grid-cols-[1.15fr_.85fr]">
+      <div className="bg-white rounded-3xl shadow-card border border-slate-100 flex flex-col justify-between gap-5 overflow-hidden p-6 md:flex-row md:items-center md:p-8">
+        <div>
+          <p className="text-[10px] uppercase tracking-[.18em] text-teal-700 font-bold">Clear price, no surprises</p>
+          <h2 className="display mt-2 text-3xl font-bold text-teal-900">A simple hourly rate.</h2>
+          <p className="mt-2 max-w-md text-sm leading-6 text-slate-600">The current configured rate is charged by the hour. Your final amount is worked out when the bicycle is returned.</p>
+          <div className="mt-5 inline-flex items-baseline gap-2 rounded-2xl bg-amber-50 px-5 py-3 border border-amber-200">
+            <span className="text-2xl font-extrabold text-teal-900">{money(state.config.hourlyRate, state.config.currency)}</span>
+            <span className="text-[10px] uppercase tracking-wider text-teal-700 font-bold">per hour</span>
+          </div>
+        </div>
+        <BikeCardArt/>
+      </div>
+      <div className="relative overflow-hidden rounded-[18px] bg-[#e8e6d7] p-6 md:p-8">
+        <p className="mono text-[10px] uppercase tracking-[.18em] text-[#768376]">Before you roll</p>
+        <h2 className="display mt-2 max-w-sm text-[28px] font-semibold leading-tight">Recorded condition is your first check.</h2>
+        <p className="mt-3 max-w-sm text-sm leading-6 text-[#6d786f]">Availability reflects the latest recorded status, not physical verification. Check the bicycle yourself before leaving. Report a fault to the station worker.</p>
+        <div className="mt-5 flex items-center gap-2 text-xs font-semibold text-[#476e58]"><ShieldCheck size={16}/> Student & campus friendly</div>
+        <BikeSketch className="bike-doodle text-[#537b61]"/>
+      </div>
+    </section>
+  </main>;
 }
+
+
 
 // ---------------------------------------------------------------------------
 // 2. USER / RIDER DASHBOARD (/rider)
 // ---------------------------------------------------------------------------
 function RiderDashboard({
-  state,
-  save,
   currentUser,
-  onOpenAuthModal,
-  onQuickDemoLogin,
+  onSignOut,
 }: {
-  state: EasyRideState;
-  save: (state: EasyRideState) => void;
+  state?: EasyRideState;
+  save?: (state: EasyRideState) => void;
   currentUser: EasyRideUser | null;
-  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
-  onQuickDemoLogin: (role: UserRole) => void;
+  onOpenAuthModal?: (mode: "signin" | "signup", role?: UserRole) => void;
+  onQuickDemoLogin?: (role: UserRole) => void;
+  onSignOut?: () => void;
 }) {
   const [, navigate] = useLocation();
-  const params = new URLSearchParams(window.location.search);
-  const initialBikeId = params.get("bike") || "";
-  const initialBike = state.bicycles.find(b => b.id === initialBikeId);
-  const initialStationId = params.get("station") || initialBike?.stationId || "";
-
-  const [stationId, setStationId] = useState(initialStationId);
-  const [customerName, setCustomerName] = useState(currentUser?.name || "");
-  const [bicycleId, setBicycleId] = useState(initialBikeId);
-  const [holdNote, setHoldNote] = useState("");
-  const [calcHours, setCalcHours] = useState(2);
-
-  useEffect(() => {
-    if (currentUser?.name && !customerName) {
-      setCustomerName(currentUser.name);
-    }
-  }, [currentUser]);
-
-  // Return dialog state
-  const [returnId, setReturnId] = useState("");
-  const [returnCondition, setReturnCondition] = useState<EasyRideBicycle["condition"] | "">("");
-  const [returnNotes, setReturnNotes] = useState("");
-
-  // Issue reporting state
-  const [issueBikeId, setIssueBikeId] = useState("");
-  const [issueDescription, setIssueDescription] = useState("");
-  const [issueSubmitted, setIssueSubmitted] = useState(false);
-
-  const addActivity = (activity: EasyRideActivity) => [activity, ...state.activity].slice(0, 100);
-
-  // Available bikes (only available, non-faulty, not in maintenance)
-  const availableBikes = state.bicycles.filter(b => b.status === "available" && b.condition !== "faulty" && (!stationId || b.stationId === stationId));
-  const selectedStation = state.stations.find(s => s.id === stationId);
-
-  // Active rentals & Holds
-  const allActiveRentals = state.rentals.filter(r => r.status === "active");
-  const heldReservations = allActiveRentals.filter(r => r.returnNotes === "HOLD_PENDING" || r.returnNotes === "HOLD_CONFIRMED");
-  const onTripRentals = allActiveRentals.filter(r => r.returnNotes !== "HOLD_PENDING" && r.returnNotes !== "HOLD_CONFIRMED");
-  const completedTrips = state.rentals.filter(r => r.status === "completed");
-
-  // 1. Asks for a bike to be held
-  const requestHold = () => {
-    const bike = state.bicycles.find(b => b.id === bicycleId);
-    const station = state.stations.find(s => s.id === stationId);
-    if (!bike || !station || !customerName.trim()) return;
-    const meta = getBikeMeta(bike);
-
-    const rental: EasyRideRental = {
-      id: uid(),
-      customerName: customerName.trim(),
-      bicycleId: bike.id,
-      bicycleCode: bike.code,
-      pickupStationId: station.id,
-      startedAt: when(),
-      returnedAt: null,
-      durationMinutes: null,
-      amount: 0,
-      paymentStatus: "pending",
-      status: "active",
-      returnCondition: null,
-      returnNotes: "HOLD_PENDING",
-    };
-
-    save({
-      ...state,
-      bicycles: state.bicycles.map(b => b.id === bike.id ? { ...b, status: "rented" } : b),
-      rentals: [rental, ...state.rentals],
-      activity: addActivity({
-        id: uid(),
-        message: `${bike.code} (${meta.modelName}) held for ${customerName.trim()} at ${station.name} · awaiting staff confirmation`,
-        createdAt: when(),
-        kind: "rental" as const,
-      }),
-    });
-    setCustomerName("");
-    setBicycleId("");
-    setHoldNote("");
-  };
-
-  // 2. Immediate direct ride pickup
-  const startDirectRide = () => {
-    const bike = state.bicycles.find(b => b.id === bicycleId);
-    const station = state.stations.find(s => s.id === stationId);
-    if (!bike || !station || !customerName.trim()) return;
-    const meta = getBikeMeta(bike);
-
-    const rental: EasyRideRental = {
-      id: uid(),
-      customerName: customerName.trim(),
-      bicycleId: bike.id,
-      bicycleCode: bike.code,
-      pickupStationId: station.id,
-      startedAt: when(),
-      returnedAt: null,
-      durationMinutes: null,
-      amount: 0,
-      paymentStatus: "pending",
-      status: "active",
-      returnCondition: null,
-      returnNotes: null,
-    };
-
-    save({
-      ...state,
-      bicycles: state.bicycles.map(b => b.id === bike.id ? { ...b, status: "rented" } : b),
-      rentals: [rental, ...state.rentals],
-      activity: addActivity({
-        id: uid(),
-        message: `${bike.code} (${meta.modelName}) checked out by ${customerName.trim()} at ${station.name}`,
-        createdAt: when(),
-        kind: "rental" as const,
-      }),
-    });
-    setCustomerName("");
-    setBicycleId("");
-  };
-
-  // Cancel a hold request
-  const cancelHold = (rental: EasyRideRental) => {
-    save({
-      ...state,
-      rentals: state.rentals.filter(r => r.id !== rental.id),
-      bicycles: state.bicycles.map(b => b.id === rental.bicycleId ? { ...b, status: "available" } : b),
-      activity: addActivity({
-        id: uid(),
-        message: `Hold on ${rental.bicycleCode} cancelled by rider`,
-        createdAt: when(),
-        kind: "rental" as const,
-      }),
-    });
-  };
-
-  // 3. Return the bike and see what you owe
-  const confirmReturn = (rental: EasyRideRental) => {
-    if (!returnCondition) return;
-    const now = new Date();
-    const started = new Date(rental.startedAt);
-    const duration = Math.max(1, Math.ceil((now.getTime() - started.getTime()) / 60000));
-    const amount = Math.ceil(duration / 60) * state.config.hourlyRate;
-    const stationName = state.stations.find(s => s.id === rental.pickupStationId)?.name || "station";
-    const note = returnNotes.trim();
-    const needsMaintenance = returnCondition === "faulty" || note.length > 0;
-
-    const maintenanceRecord: EasyRideMaintenance | null = needsMaintenance ? {
-      id: uid(),
-      bicycleId: rental.bicycleId,
-      bicycleCode: rental.bicycleCode,
-      stationName,
-      issue: note || "Rider reported issue on return check",
-      reportedAt: now.toISOString(),
-      status: "open",
-      repairCost: 0,
-    } : null;
-
-    const activity: EasyRideActivity[] = [
-      { id: uid(), message: `${rental.bicycleCode} returned to ${stationName} · ${money(amount, state.config.currency)} due`, createdAt: now.toISOString(), kind: "return" as const },
-      ...(maintenanceRecord ? [{ id: uid(), message: `${rental.bicycleCode} quarantined for maintenance after return check`, createdAt: now.toISOString(), kind: "maintenance" as const }] : []),
-      ...state.activity,
-    ].slice(0, 100);
-
-    save({
-      ...state,
-      rentals: state.rentals.map(r => r.id === rental.id ? { ...r, status: "completed", returnedAt: now.toISOString(), durationMinutes: duration, amount, paymentStatus: "pending", returnCondition, returnNotes: note || null } : r),
-      bicycles: state.bicycles.map(b => b.id === rental.bicycleId ? { ...b, status: needsMaintenance ? "maintenance" : "available", condition: needsMaintenance ? "faulty" : returnCondition, stationId: rental.pickupStationId, lastChecked: now.toISOString() } : b),
-      maintenance: maintenanceRecord ? [maintenanceRecord, ...state.maintenance] : state.maintenance,
-      activity,
-    });
-    setReturnId("");
-    setReturnCondition("");
-    setReturnNotes("");
-  };
-
-  // 4. Report issues with bike
-  const submitIssue = () => {
-    const bike = state.bicycles.find(b => b.id === issueBikeId);
-    if (!bike || !issueDescription.trim()) return;
-    const station = state.stations.find(s => s.id === bike.stationId);
-
-    const record: EasyRideMaintenance = {
-      id: uid(),
-      bicycleId: bike.id,
-      bicycleCode: bike.code,
-      stationName: station?.name || "Rider report",
-      issue: issueDescription.trim(),
-      reportedAt: when(),
-      status: "open",
-      repairCost: 0,
-    };
-
-    save({
-      ...state,
-      bicycles: state.bicycles.map(b => b.id === bike.id ? { ...b, condition: "faulty", status: "maintenance" } : b),
-      maintenance: [record, ...state.maintenance],
-      activity: addActivity({
-        id: uid(),
-        message: `Rider reported issue on ${bike.code}: ${issueDescription.trim()} (quarantined from fleet)`,
-        createdAt: when(),
-        kind: "maintenance" as const,
-      }),
-    });
-
-    setIssueBikeId("");
-    setIssueDescription("");
-    setIssueSubmitted(true);
-    setTimeout(() => setIssueSubmitted(false), 4000);
-  };
-
   return (
-    <main className="mx-auto max-w-[1320px] px-5 pb-16 pt-8 md:px-8 md:pt-12">
-      <PageTitle
-        eyebrow="Rider Portal / Self-Service Desk"
-        title="Rent, ride & return."
-        detail="Look up bike availability across stations, ask for a bike to be held, see the price upfront before renting, pick up your ride, return and see what you owe, or report any issues with a bike."
-      />
-
-      {/* Account Status Banner */}
-      {currentUser?.role === "rider" ? (
-        <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-700 text-white flex items-center justify-center font-bold text-sm shadow-sm">
-              {currentUser.name.slice(0, 2).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-xs font-bold text-emerald-950 flex items-center gap-2">
-                <span>Welcome back, {currentUser.name}! 🚴</span>
-                <Tag tone="green">Verified Rider</Tag>
-              </p>
-              <p className="text-[11px] text-slate-500">
-                {currentUser.email} {currentUser.phone && `· ${currentUser.phone}`}
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-[11px] text-emerald-800 font-semibold hidden sm:inline">
-              Your name is auto-filled for fast holds & rentals
-            </span>
-          </div>
-        </div>
-      ) : currentUser?.role === "staff" ? (
-        <div className="mb-6 p-4 rounded-2xl bg-amber-50 border border-amber-200 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-2.5 text-xs text-amber-950 font-medium">
-            <AlertTriangle size={16} className="text-amber-600 shrink-0" />
-            <span>
-              You are currently signed in with a Staff account (<b>{currentUser.name}</b>). You can test the Rider desk, or return to station worker operations.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/staff")}
-              className="btn-primary py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer"
-            >
-              Go to Staff Dashboard →
-            </button>
-            <button
-              onClick={() => onQuickDemoLogin("rider")}
-              className="text-xs text-amber-900 underline hover:text-amber-950 cursor-pointer"
-            >
-              Switch to Rider (Alex)
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="mb-6 p-4 rounded-2xl bg-teal-50/80 border border-teal-200/80 flex flex-wrap items-center justify-between gap-3 shadow-xs">
-          <div className="flex items-center gap-2.5 text-xs text-teal-950 font-medium">
-            <User size={16} className="text-teal-700 shrink-0" />
-            <span>
-              Viewing as Guest. Sign in or sign up as a Rider to save reservations and rides under your profile.
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onOpenAuthModal("signin", "rider")}
-              className="btn-primary py-1.5 px-3 text-xs font-bold rounded-xl cursor-pointer"
-            >
-              Sign In as Rider
-            </button>
-            <button
-              onClick={() => onOpenAuthModal("signup", "rider")}
-              className="bg-white border border-teal-300 text-teal-900 py-1.5 px-3 text-xs font-bold rounded-xl hover:bg-teal-50 cursor-pointer"
-            >
-              Create Account
-            </button>
-            <button
-              onClick={() => onQuickDemoLogin("rider")}
-              className="text-xs text-teal-800 underline hover:text-teal-950 cursor-pointer hidden sm:inline"
-            >
-              ⚡ 1-Click Demo Rider
-            </button>
-          </div>
-        </div>
-      )}
-
-      <div className="grid gap-6 xl:grid-cols-[.9fr_1.1fr]">
-        {/* Left Column: Hold / Book & Price Estimator */}
-        <div className="space-y-6">
-          {/* See Price Before Renting (Upfront Estimator) */}
-          <section className="panel p-5 md:p-6 bg-gradient-to-br from-amber-50/70 to-white border-amber-200/60">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-amber-800 font-bold flex items-center gap-1">
-                  <CreditCard size={13} /> Upfront Pricing
-                </p>
-                <h3 className="display mt-1 text-xl font-bold text-teal-950">See price before renting</h3>
-              </div>
-              <span className="font-extrabold text-teal-900 bg-amber-100/80 px-3 py-1 rounded-xl text-xs border border-amber-200">
-                {money(state.config.hourlyRate, state.config.currency)}/hr
-              </span>
-            </div>
-            <p className="text-xs text-slate-600 mt-2">
-              Select your planned trip length to estimate your cost. You are only charged for actual started hours upon return.
-            </p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {[1, 2, 3, 4, 6].map(h => (
-                <button
-                  key={h}
-                  onClick={() => setCalcHours(h)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-                    calcHours === h
-                      ? "bg-teal-800 text-white shadow-xs"
-                      : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
-                  }`}
-                >
-                  {h} {h === 1 ? "Hour" : "Hours"}
-                </button>
-              ))}
-            </div>
-            <div className="mt-4 rounded-xl bg-white p-3.5 border border-amber-200/80 flex items-center justify-between">
-              <div>
-                <span className="text-[11px] text-slate-500 font-medium">Estimated cost for {calcHours} hr(s):</span>
-                <p className="text-xl font-extrabold text-teal-900">
-                  {money(calcHours * state.config.hourlyRate, state.config.currency)}
-                </p>
-              </div>
-              <span className="text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-1 rounded-full font-bold">
-                No advance deposit
-              </span>
-            </div>
-          </section>
-
-          {/* Ask for a Bike to be Held / Start Ride */}
-          <section className="panel p-5 md:p-6" data-testid="section-hold-rental">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mono text-[10px] uppercase tracking-[.18em] text-[#72867b] font-bold">Rider Booking</p>
-                <h2 className="display mt-1 text-2xl font-bold text-teal-900">Reserve or Pick Up</h2>
-              </div>
-              <span className="grid h-10 w-10 place-items-center rounded-xl bg-teal-50 text-teal-800"><Hand size={18}/></span>
-            </div>
-
-            <label className="mt-4 block text-xs font-semibold text-[#51675c]">
-              Rider Name
-              <input
-                className="field mt-1.5"
-                value={customerName}
-                onChange={e => setCustomerName(e.target.value)}
-                placeholder="Enter your name (e.g. Keith Kato)"
-                data-testid="input-rider-name"
-              />
-            </label>
-
-            <label className="mt-4 block text-xs font-semibold text-[#51675c]">
-              1. Look up Pickup Station
-              <select
-                className="field mt-1.5"
-                value={stationId}
-                onChange={e => {
-                  setStationId(e.target.value);
-                  if (bicycleId) {
-                    const b = state.bicycles.find(x => x.id === bicycleId);
-                    if (b && b.stationId !== e.target.value) setBicycleId("");
-                  }
-                }}
-                data-testid="select-pickup-station"
-              >
-                <option value="">Choose a pickup station</option>
-                {state.stations.filter(s => s.active).map(s => (
-                  <option key={s.id} value={s.id}>{s.name} · {s.area} ({s.landmark})</option>
-                ))}
-              </select>
-            </label>
-
-            <label className="mt-4 block text-xs font-semibold text-[#51675c]">
-              2. Available Bicycle at Station
-              <select
-                className="field mt-1.5"
-                value={bicycleId}
-                onChange={e => setBicycleId(e.target.value)}
-                data-testid="select-bicycle"
-              >
-                <option value="">Choose a bicycle</option>
-                {availableBikes.map(b => {
-                  const meta = getBikeMeta(b);
-                  return (
-                    <option key={b.id} value={b.id}>
-                      {b.code} · {meta.modelName} ({b.type}) · {textCase(b.condition)} condition
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-
-            {selectedStation && !availableBikes.length && (
-              <p className="mt-3 text-xs text-rose-600 font-medium">
-                No available bicycles recorded at this pickup point right now. Try selecting another station.
-              </p>
-            )}
-
-            {/* Action buttons: Ask for Hold or Pick Up Immediately */}
-            <div className="mt-5 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                disabled={!customerName.trim() || !stationId || !bicycleId}
-                onClick={requestHold}
-                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-teal-950 font-bold px-4 py-3 text-xs shadow-sm disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
-                title="Hold the bike so station staff can prepare it for you"
-                data-testid="button-request-hold"
-              >
-                <Hand size={14} /> Ask Bike to be Held
-              </button>
-
-              <button
-                disabled={!customerName.trim() || !stationId || !bicycleId}
-                onClick={startDirectRide}
-                className="btn-primary flex items-center justify-center gap-1.5 rounded-xl px-4 py-3 text-xs font-bold disabled:cursor-not-allowed disabled:opacity-40 transition cursor-pointer"
-                title="Pick up and ride right now"
-                data-testid="button-begin-rental"
-              >
-                <Bike size={14} /> Pick Up & Ride Now
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-400 mt-2.5 text-center">
-              Asking for a hold alerts station workers to check and reserve your bicycle.
-            </p>
-          </section>
-
-          {/* Report an Issue with a Bike */}
-          <section className="panel p-5 md:p-6 border-rose-100 bg-rose-50/20">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[10px] uppercase tracking-wider text-rose-700 font-bold flex items-center gap-1">
-                  <ShieldAlert size={13} /> Rider Safety
-                </p>
-                <h3 className="display mt-1 text-lg font-bold text-teal-950">Report an issue with a bike</h3>
-              </div>
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-rose-100 text-rose-700"><Wrench size={15}/></span>
-            </div>
-            <p className="text-xs text-slate-600 mt-1">
-              Notice loose brakes, a flat tire, or slipping chain? Report it here so station staff keeps it out of service.
-            </p>
-
-            <label className="mt-3 block text-xs font-semibold text-[#51675c]">
-              Bicycle
-              <select
-                className="field mt-1 text-xs"
-                value={issueBikeId}
-                onChange={e => setIssueBikeId(e.target.value)}
-              >
-                <option value="">Select bicycle to report</option>
-                {state.bicycles.map(b => {
-                  const meta = getBikeMeta(b);
-                  return (
-                    <option key={b.id} value={b.id}>
-                      {b.code} · {meta.modelName} ({b.type})
-                    </option>
-                  );
-                })}
-              </select>
-            </label>
-
-            <label className="mt-3 block text-xs font-semibold text-[#51675c]">
-              What is wrong with the bike?
-              <textarea
-                className="field mt-1 min-h-[70px] text-xs resize-y"
-                value={issueDescription}
-                onChange={e => setIssueDescription(e.target.value)}
-                placeholder="e.g. Front brakes slipping, chain came off on hill..."
-              />
-            </label>
-
-            <button
-              disabled={!issueBikeId || !issueDescription.trim()}
-              onClick={submitIssue}
-              className="mt-3 w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold py-2.5 text-xs disabled:opacity-40 transition cursor-pointer"
-            >
-              <AlertTriangle size={14} /> Submit Fault Report
-            </button>
-            {issueSubmitted && (
-              <p className="mt-2 text-xs text-emerald-700 font-bold text-center">
-                ✓ Issue submitted. The bicycle has been quarantined from circulation.
-              </p>
-            )}
-          </section>
-        </div>
-
-        {/* Right Column: Active Trips, Holds & Returns */}
-        <div className="space-y-6">
-          {/* Held Bikes (Awaiting Pickup) */}
-          <section className="panel p-5 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mono text-[10px] uppercase tracking-[.18em] text-amber-700 font-bold">Held Bicycles</p>
-                <h3 className="display mt-1 text-xl font-bold text-teal-900">
-                  Bikes Asked to Be Held <span className="text-slate-400 font-normal">({heldReservations.length})</span>
-                </h3>
-              </div>
-              <Tag tone="amber">Reservations</Tag>
-            </div>
-
-            {heldReservations.length ? (
-              <div className="mt-4 space-y-3">
-                {heldReservations.map(r => {
-                  const station = state.stations.find(s => s.id === r.pickupStationId);
-                  const isConfirmed = r.returnNotes === "HOLD_CONFIRMED";
-                  return (
-                    <div key={r.id} className="rounded-2xl border border-amber-200/80 bg-amber-50/40 p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <b className="text-base font-extrabold text-teal-950">{r.bicycleCode}</b>
-                            {isConfirmed ? (
-                              <Tag tone="green">✅ Ready for Pickup</Tag>
-                            ) : (
-                              <Tag tone="amber">⏳ Staff Checking</Tag>
-                            )}
-                          </div>
-                          <p className="text-xs text-slate-600 mt-1">
-                            Rider: <b>{r.customerName}</b> · Station: {station?.name || "Station"} ({station?.landmark})
-                          </p>
-                        </div>
-                        <p className="text-[10px] mono text-slate-500">
-                          HELD AT<br/>{niceDate(r.startedAt)}
-                        </p>
-                      </div>
-
-                      <div className="mt-3 pt-3 border-t border-amber-200/60 flex items-center justify-between gap-2 text-xs">
-                        <span className="text-slate-600 font-medium">
-                          {isConfirmed
-                            ? "Station worker has confirmed this bike is ready for you!"
-                            : "Station worker is inspecting this bike before handover."}
-                        </span>
-                        <button
-                          onClick={() => cancelHold(r)}
-                          className="px-3 py-1.5 rounded-lg bg-white hover:bg-rose-50 text-rose-700 border border-slate-200 text-xs font-semibold cursor-pointer"
-                        >
-                          Cancel Hold
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="py-6 text-center text-xs text-slate-400 bg-slate-50/50 rounded-2xl mt-4">
-                No active hold requests. Ask for a bike to be held on the left.
-              </div>
-            )}
-          </section>
-
-          {/* Active Rides: Pick up, ride, return & see what you owe */}
-          <section className="panel p-5 md:p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="mono text-[10px] uppercase tracking-[.18em] text-emerald-700 font-bold">On the Road</p>
-                <h3 className="display mt-1 text-xl font-bold text-teal-900">
-                  Active Trips <span className="text-slate-400 font-normal">({onTripRentals.length})</span>
-                </h3>
-              </div>
-              <Tag tone="green">Riding</Tag>
-            </div>
-
-            {onTripRentals.length ? (
-              <div className="mt-4 space-y-4">
-                {onTripRentals.map(r => {
-                  const station = state.stations.find(s => s.id === r.pickupStationId);
-                  const started = new Date(r.startedAt);
-                  const now = new Date();
-                  const elapsedMins = Math.max(1, Math.ceil((now.getTime() - started.getTime()) / 60000));
-                  const estimatedDue = Math.ceil(elapsedMins / 60) * state.config.hourlyRate;
-
-                  return (
-                    <article key={r.id} className="rounded-2xl border border-teal-200/80 bg-teal-50/30 p-5">
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <Tag tone="green">On Trip</Tag>
-                            <h4 className="text-2xl font-extrabold text-teal-950">{r.bicycleCode}</h4>
-                          </div>
-                          <p className="mt-1 text-xs text-slate-600">
-                            Rider: <b>{r.customerName}</b> · Picked up at {station?.name}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] mono text-slate-400">STARTED</p>
-                          <p className="text-xs font-bold text-slate-700">{niceDate(r.startedAt)}</p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-teal-200/60 pt-3">
-                        <div>
-                          <span className="text-xs text-slate-500 font-medium">Trip time: <b>{elapsedMins} mins</b></span>
-                          <span className="ml-2 font-bold text-teal-900 text-sm">Amount so far: {money(estimatedDue, state.config.currency)}</span>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setReturnId(r.id);
-                            setReturnCondition("");
-                            setReturnNotes("");
-                          }}
-                          className="btn-quiet inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-xs font-bold cursor-pointer"
-                        >
-                          Return Bike & See What You Owe <ArrowDownLeft size={14}/>
-                        </button>
-                      </div>
-
-                      {/* Return & Settlement Section */}
-                      {returnId === r.id && (
-                        <div className="mt-4 rounded-2xl border border-amber-300 bg-amber-50 p-4 enter">
-                          <h4 className="text-sm font-bold text-teal-950">Return settlement for {r.bicycleCode}</h4>
-                          <p className="text-xs text-slate-600 mt-1">
-                            Recorded duration: <b>{elapsedMins} minutes</b>. Total amount due: <b className="text-teal-900 font-extrabold text-sm">{money(estimatedDue, state.config.currency)}</b>
-                          </p>
-
-                          <label className="mt-3 block text-xs font-semibold text-slate-700">
-                            Condition on return
-                            <select
-                              className="field mt-1 text-xs"
-                              value={returnCondition}
-                              onChange={e => setReturnCondition(e.target.value as EasyRideBicycle["condition"] | "")}
-                            >
-                              <option value="">Select bike condition</option>
-                              {["excellent", "good", "fair", "faulty"].map(c => (
-                                <option key={c} value={c}>{textCase(c)}</option>
-                              ))}
-                            </select>
-                          </label>
-
-                          <label className="mt-3 block text-xs font-semibold text-slate-700">
-                            Condition notes or faults noticed
-                            <textarea
-                              className="field mt-1 text-xs min-h-[60px] resize-y"
-                              value={returnNotes}
-                              onChange={e => setReturnNotes(e.target.value)}
-                              placeholder="Describe any issues or damage found..."
-                            />
-                          </label>
-
-                          <div className="mt-4 flex flex-wrap gap-2">
-                            <button
-                              disabled={!returnCondition}
-                              onClick={() => confirmReturn(r)}
-                              className="btn-primary rounded-xl px-4 py-2 text-xs font-bold disabled:opacity-40 cursor-pointer"
-                            >
-                              Confirm Return ({money(estimatedDue, state.config.currency)})
-                            </button>
-                            <button
-                              onClick={() => setReturnId("")}
-                              className="rounded-xl bg-white px-4 py-2 text-xs font-bold text-slate-600 border border-slate-200 cursor-pointer"
-                            >
-                              Keep Riding
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </article>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="py-8 text-center text-xs text-slate-400 bg-slate-50/50 rounded-2xl mt-4">
-                No active rides in progress. Pick up a bicycle or check held reservations.
-              </div>
-            )}
-          </section>
-
-          {/* Recent Completed Trips */}
-          <section className="panel p-5 md:p-6">
-            <h3 className="text-sm font-bold text-teal-900">Recent Completed Trips & Receipts</h3>
-            {completedTrips.slice(0, 4).length ? (
-              <div className="mt-3 divide-y divide-slate-100">
-                {completedTrips.slice(0, 4).map(r => (
-                  <div key={r.id} className="py-2.5 flex items-center justify-between text-xs">
-                    <div>
-                      <b className="text-teal-900">{r.bicycleCode}</b>
-                      <span className="text-slate-500 ml-2">{r.customerName} · {r.durationMinutes ?? "—"} min</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-extrabold text-teal-900">{money(r.amount, state.config.currency)}</span>
-                      <Tag tone={r.paymentStatus === "paid" ? "green" : "amber"}>{r.paymentStatus}</Tag>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="mt-2 text-xs text-slate-400">Completed rental history appears here.</p>
-            )}
-          </section>
-        </div>
-      </div>
-    </main>
+    <CustomerView
+      currentUser={currentUser}
+      onSignOut={onSignOut}
+      onBackToGuest={() => navigate("/")}
+    />
   );
 }
-
 // ---------------------------------------------------------------------------
 // 3. STAFF / STATION WORKER DASHBOARD (/staff)
 // ---------------------------------------------------------------------------
@@ -2277,6 +1918,7 @@ export default function EasyRidePage() {
           currentUser={activeUser}
           onOpenAuthModal={openAuthModal}
           onQuickDemoLogin={handleQuickDemoLogin}
+          onSignOut={handleSignOut}
         />
       );
     }
@@ -2288,6 +1930,7 @@ export default function EasyRidePage() {
         currentUser={activeUser}
         onOpenAuthModal={openAuthModal}
         onQuickDemoLogin={handleQuickDemoLogin}
+        onSignOut={handleSignOut}
       />
     );
   }, [state, loading, error, isStaffPath, isRiderPath, save, saving, activeUser]);
@@ -2326,10 +1969,10 @@ export default function EasyRidePage() {
     );
   }
 
-  if (!isStaffPath) {
+  if (isRiderPath && activeUser) {
     return (
       <div className="min-h-screen bg-[#f6f9f8] text-slate-800 font-sans antialiased selection:bg-brand-mint selection:text-white">
-        {loading ? <SkeletonPage /> : error || !state ? <MissingState error={error} retry={retry} /> : page}
+        {page}
         <AuthModal
           open={authModalOpen}
           initialMode={authModalMode}
