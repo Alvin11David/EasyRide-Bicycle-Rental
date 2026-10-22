@@ -418,6 +418,8 @@ export function CustomerView({
   return (
     <div className="bg-[#f6f9f8] text-slate-800 font-sans antialiased selection:bg-brand-mint selection:text-white min-h-screen flex flex-col justify-between">
       <div>
+        {/* BEGIN: Fixed Top Bar (announcement + navigation) */}
+        <div className="sticky top-0 z-40">
         {/* BEGIN: Top Announcement Banner */}
         <header className="bg-brand-dark text-slate-200 text-xs py-2 px-4 sm:px-8 border-b border-white/10" data-purpose="top-announcement-bar">
           <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 font-medium">
@@ -538,7 +540,7 @@ export function CustomerView({
         {/* END: Top Announcement Banner */}
 
         {/* BEGIN: Main Navigation Bar */}
-        <nav className="bg-white sticky top-0 z-40 border-b border-brand-border/60 shadow-sm" data-purpose="primary-navigation">
+        <nav className="bg-white border-b border-brand-border/60 shadow-sm" data-purpose="primary-navigation">
           <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3.5 flex items-center justify-between gap-6">
             {/* Brand Logo */}
             <Link href="/" className="flex items-center space-x-3 shrink-0 no-underline">
@@ -622,6 +624,8 @@ export function CustomerView({
           </div>
         </nav>
         {/* END: Main Navigation Bar */}
+        </div>
+        {/* END: Fixed Top Bar */}
 
         {/* BEGIN: Breadcrumb Bar */}
         <div className="max-w-7xl mx-auto px-4 sm:px-8 py-3 text-xs text-slate-500 flex items-center justify-between">
@@ -636,15 +640,6 @@ export function CustomerView({
             <span>›</span>
             <span className="text-brand-dark font-semibold">Customer Dashboard (Bike Rentals)</span>
           </div>
-          {onSignOut && (
-            <button
-              type="button"
-              onClick={onSignOut}
-              className="text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer flex items-center gap-1"
-            >
-              Sign out of {currentUser?.name || "Atugonza"} →
-            </button>
-          )}
         </div>
         {/* END: Breadcrumb Bar */}
 
