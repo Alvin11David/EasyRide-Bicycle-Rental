@@ -2507,13 +2507,21 @@ export default function StaffDashboard({
             <p className="mt-1 text-xs text-slate-500">
               Which pickup point this account is responsible for.
             </p>
-            <div className="mt-4 grid gap-3 sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
                   Officer
                 </span>
                 <p className="mt-1 text-sm font-semibold text-slate-900">
                   {currentUser?.name || "—"}
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                  Staff ID
+                </span>
+                <p className="mt-1 font-mono text-sm font-semibold text-slate-900">
+                  {currentUser?.staffId || "Not on file"}
                 </p>
               </div>
               <div className="rounded-xl border border-slate-100 bg-slate-50 p-3">

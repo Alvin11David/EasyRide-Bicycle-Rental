@@ -1,44 +1,48 @@
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   AlertCircle,
   ArrowRight,
+  BadgeCheck,
   Bike,
-  Check,
   CheckCircle2,
+  ChevronDown,
   Lock,
   LogIn,
   Mail,
   MapPin,
   Phone,
-  Sparkles,
+  ShieldCheck,
   User,
   UserPlus,
   Wrench,
-  X,
 } from "lucide-react";
 import type { EasyRideStation } from "@workspace/api-client-react";
-import { useAuth, type EasyRideUser, type UserRole, DEFAULT_USERS } from "@/hooks/use-auth";
+import { useAuth, type EasyRideUser, type UserRole } from "@/hooks/use-auth";
 
-interface AuthProps {
-  initialMode?: "signin" | "signup";
+interface AuthPanelProps {
+  /** Which account page is being shown — sign in and sign up are separate pages. */
+  mode: "signin" | "signup";
   initialRole?: UserRole;
   stations?: EasyRideStation[];
   auth?: ReturnType<typeof useAuth>;
   onSuccess?: (user: EasyRideUser) => void;
-  onClose?: () => void;
+  onSwitchMode: (mode: "signin" | "signup") => void;
 }
 
-export function AuthCard({
-  initialMode = "signin",
+/**
+ * The sign-in / create-account form. Each mode is its own page: there is no
+ * modal wrapper and no tab switcher, only a link across to the other page.
+ */
+export function AuthPanel({
+  mode,
   initialRole = "rider",
   stations = [],
   auth: propAuth,
   onSuccess,
-  onClose,
-}: AuthProps) {
+  onSwitchMode,
+}: AuthPanelProps) {
   const localAuth = useAuth();
-  const { signin, signup, quickDemoLogin } = propAuth || localAuth;
-  const [mode, setMode] = useState<"signin" | "signup">(initialMode);
+  const { signin, signup } = propAuth || localAuth;
   const [selectedRole, setSelectedRole] = useState<UserRole>(initialRole);
 
   // Sign In state
@@ -51,6 +55,7 @@ export function AuthCard({
   const [signUpPhone, setSignUpPhone] = useState("");
   const [signUpPassword, setSignUpPassword] = useState("");
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("");
+  const [signUpStaffId, setSignUpStaffId] = useState("");
   const [signUpStationId, setSignUpStationId] = useState(
     stations[0]?.id || "station-makerere-main"
   );
@@ -95,6 +100,7 @@ export function AuthCard({
       password: signUpPassword || "password123",
       role: selectedRole,
       stationId: selectedRole === "staff" ? signUpStationId : undefined,
+      staffId: selectedRole === "staff" ? signUpStaffId : undefined,
     });
     setIsSubmitting(false);
 
@@ -109,80 +115,53 @@ export function AuthCard({
     }, 200);
   };
 
-  const handleDemoLogin = (role: UserRole) => {
-    setErrorMessage(null);
-    const user = quickDemoLogin(role);
-    if (user) {
-      setSuccessMessage(`Signed in as ${user.name} (${role === "staff" ? "Staff" : "Rider"})! Redirecting...`);
-      setTimeout(() => {
-        onSuccess?.(user);
-      }, 200);
-    }
-  };
-
   return (
-    <div className="relative w-full max-w-lg rounded-3xl bg-white p-6 md:p-8 shadow-2xl border border-slate-100">
-      {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 p-2 text-slate-400 hover:text-slate-700 rounded-full hover:bg-slate-100 transition cursor-pointer"
-          aria-label="Close"
-        >
-          <X size={18} />
-        </button>
-      )}
+    <div
+      className="w-full max-w-5xl overflow-hidden rounded-3xl border border-slate-100 bg-white shadow-2xl"
+      data-purpose="auth-shell"
+    >
+      {/* Compact artwork strip on small screens (the full panel is on the right on desktop) */}
+      <div
+        className="relative flex items-center justify-between gap-4 overflow-hidden bg-gradient-to-br from-teal-800 to-teal-900 px-6 py-4 text-white lg:hidden"
+        data-purpose="auth-artwork-mobile"
+      >
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[.2em] text-amber-300">
+              EasyRide fleet
+            </p>
+            <p className="mt-1 text-sm font-extrabold leading-tight">
+              Your next ride is already waiting.
+            </p>
+          </div>
+        <img
+          src="/hero-bike.png"
+          alt=""
+          aria-hidden="true"
+          className="h-20 w-auto shrink-0 drop-shadow-lg"
+        />
+      </div>
 
+      <div className="lg:grid lg:grid-cols-2">
+        <div
+          className="relative p-6 md:p-8"
+          data-purpose="auth-panel"
+          data-auth-mode={mode}
+        >
       {/* Header & Logo */}
       <div className="flex items-center gap-3 mb-5">
         <div className="grid h-10 w-10 place-items-center rounded-2xl bg-teal-800 text-amber-400 shadow-md">
           <Bike size={22} />
         </div>
         <div>
-          <h2 className="text-xl font-extrabold text-teal-900 tracking-tight leading-none">
+          <h1 className="text-xl font-extrabold text-teal-900 tracking-tight leading-none">
             {mode === "signin" ? "Sign In to EasyRide" : "Create EasyRide Account"}
-          </h2>
+          </h1>
           <p className="text-xs text-slate-500 mt-1">
             {mode === "signin"
               ? "Access your Rider or Staff dashboard"
               : "Choose your role & get immediate dashboard access"}
           </p>
         </div>
-      </div>
-
-      {/* Tab Switcher */}
-      <div className="grid grid-cols-2 p-1 rounded-2xl bg-slate-100 mb-6">
-        <button
-          type="button"
-          onClick={() => {
-            setMode("signin");
-            setErrorMessage(null);
-            setSuccessMessage(null);
-          }}
-          className={`flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            mode === "signin"
-              ? "bg-white text-teal-900 shadow-xs"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <LogIn size={14} />
-          Sign In
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setMode("signup");
-            setErrorMessage(null);
-            setSuccessMessage(null);
-          }}
-          className={`flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-xl transition cursor-pointer ${
-            mode === "signup"
-              ? "bg-white text-teal-900 shadow-xs"
-              : "text-slate-600 hover:text-slate-900"
-          }`}
-        >
-          <UserPlus size={14} />
-          Create Account
-        </button>
       </div>
 
       {/* Feedback Messages */}
@@ -202,7 +181,7 @@ export function AuthCard({
 
       {/* SIGN IN FORM */}
       {mode === "signin" && (
-        <form onSubmit={handleSignIn} className="space-y-4">
+        <form onSubmit={handleSignIn} className="space-y-4" data-purpose="signin-form">
           <div>
             <label className="block text-xs font-bold text-slate-700 mb-1.5">
               Email Address
@@ -214,17 +193,14 @@ export function AuthCard({
                 required
                 value={signInEmail}
                 onChange={(e) => setSignInEmail(e.target.value)}
-                placeholder="rider@easyride.ug or staff@easyride.ug"
+                placeholder="rider@gmail.com"
                 className="w-full pl-10 pr-4 py-2.5 bg-slate-50 rounded-xl text-xs border border-slate-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-teal-700/30 focus:bg-white"
               />
             </div>
           </div>
 
           <div>
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-bold text-slate-700">Password</label>
-              <span className="text-[11px] text-slate-400">Demo password: password123</span>
-            </div>
+            <label className="block text-xs font-bold text-slate-700 mb-1.5">Password</label>
             <div className="relative">
               <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
@@ -244,102 +220,59 @@ export function AuthCard({
             className="w-full mt-2 btn-primary py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md"
           >
             <LogIn size={15} />
-            {isSubmitting ? "Signing in..." : "Sign In & Open Dashboard"}
+            {isSubmitting ? "Signing in..." : "Sign In"}
           </button>
 
-          {/* Quick 1-Click Demo Logins */}
-          <div className="pt-4 border-t border-slate-100">
-            <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2.5 text-center">
-              ⚡ 1-Click Demo Logins (No Backend Required)
-            </p>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => handleDemoLogin("rider")}
-                className="p-3 rounded-2xl border-2 border-teal-600/30 bg-teal-50/50 hover:bg-teal-100/60 text-left transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-teal-950 mb-0.5">
-                  <User size={13} className="text-teal-700" /> Alex (Rider)
-                </div>
-                <div className="text-[10px] text-teal-800 font-medium group-hover:text-teal-950">
-                  Rides & holds →
-                </div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDemoLogin("staff")}
-                className="p-3 rounded-2xl border-2 border-amber-600/30 bg-amber-50/50 hover:bg-amber-100/60 text-left transition cursor-pointer group"
-              >
-                <div className="flex items-center gap-1.5 text-xs font-bold text-amber-950 mb-0.5">
-                  <Wrench size={13} className="text-amber-700" /> Sarah (Staff)
-                </div>
-                <div className="text-[10px] text-amber-800 font-medium group-hover:text-amber-950">
-                  Station worker →
-                </div>
-              </button>
-            </div>
-          </div>
         </form>
       )}
 
       {/* SIGN UP FORM */}
       {mode === "signup" && (
-        <form onSubmit={handleSignUp} className="space-y-4">
-          {/* Role Selection Cards */}
+        <form onSubmit={handleSignUp} className="space-y-4" data-purpose="signup-form">
+          {/* Role selection dropdown */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 mb-2">
-              Select Your Role
-            </label>
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                type="button"
-                onClick={() => setSelectedRole("rider")}
-                className={`p-3 rounded-2xl border-2 text-left transition cursor-pointer ${
-                  selectedRole === "rider"
-                    ? "border-teal-700 bg-teal-50 shadow-xs"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
+              <label
+                htmlFor="signup-role"
+                className="block text-xs font-bold text-slate-700 mb-1.5"
               >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-950">
-                    <User size={14} className="text-teal-700" /> Rider
-                  </span>
-                  {selectedRole === "rider" && (
-                    <span className="w-4 h-4 rounded-full bg-teal-800 text-white grid place-items-center text-[10px]">
-                      <Check size={11} strokeWidth={3} />
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500 leading-tight">
-                  Rent bikes, request holds, calculate upfront fares
-                </p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setSelectedRole("staff")}
-                className={`p-3 rounded-2xl border-2 text-left transition cursor-pointer ${
-                  selectedRole === "staff"
-                    ? "border-amber-600 bg-amber-50 shadow-xs"
-                    : "border-slate-200 bg-white hover:border-slate-300"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-950">
-                    <Wrench size={14} className="text-amber-700" /> Station Staff
-                  </span>
-                  {selectedRole === "staff" && (
-                    <span className="w-4 h-4 rounded-full bg-amber-600 text-white grid place-items-center text-[10px]">
-                      <Check size={11} strokeWidth={3} />
-                    </span>
-                  )}
-                </div>
-                <p className="text-[10px] text-slate-500 leading-tight">
-                  Check safety, dispatch rides, handle returns & quarantine
-                </p>
-              </button>
-            </div>
+                Select Your Role
+              </label>
+              <div className="relative">
+                {selectedRole === "staff" ? (
+                  <Wrench
+                    size={15}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-600"
+                  />
+                ) : (
+                  <User
+                    size={15}
+                    className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-teal-700"
+                  />
+                )}
+                <select
+                  id="signup-role"
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as UserRole)}
+                  className={`w-full appearance-none pl-10 pr-9 py-3 rounded-xl text-xs font-bold border transition cursor-pointer focus:outline-none focus:ring-2 ${
+                    selectedRole === "staff"
+                      ? "border-amber-300 bg-amber-50/60 text-amber-950 focus:ring-amber-500/30"
+                      : "border-teal-300 bg-teal-50/60 text-teal-950 focus:ring-teal-700/30"
+                  }`}
+                  data-purpose="role-select"
+                >
+                  <option value="rider">Rider</option>
+                  <option value="staff">Station Staff</option>
+                </select>
+                <ChevronDown
+                  size={15}
+                  className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
+                />
+              </div>
+              <p className="mt-1.5 text-[10px] leading-tight text-slate-500">
+                {selectedRole === "rider"
+                  ? "Rent bikes, request holds, calculate upfront fares"
+                  : "Check safety, dispatch rides, handle returns & quarantine"}
+              </p>
           </div>
 
           {/* Full Name */}
@@ -395,6 +328,38 @@ export function AuthCard({
               </div>
             </div>
           </div>
+
+          {/* Staff ID (required for station staff only) */}
+          {selectedRole === "staff" && (
+            <div>
+              <label
+                htmlFor="staff-id"
+                className="block text-xs font-bold text-amber-900 mb-1.5"
+              >
+                Staff ID <span className="text-rose-600">*</span>
+              </label>
+              <div className="relative">
+                <BadgeCheck
+                  size={15}
+                  className="absolute left-3.5 top-1/2 -translate-y-1/2 text-amber-600"
+                />
+                <input
+                  id="staff-id"
+                  type="text"
+                  required
+                  value={signUpStaffId}
+                  onChange={(e) => setSignUpStaffId(e.target.value)}
+                  placeholder="e.g. ER-STAFF-1042"
+                  autoComplete="off"
+                  className="w-full pl-10 pr-4 py-2.5 bg-amber-50/60 rounded-xl text-xs font-mono uppercase border border-amber-200 text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500/30"
+                  data-purpose="staff-id-input"
+                />
+              </div>
+              <p className="mt-1 text-[10px] text-slate-400">
+                Your station-issued staff ID — required to open the staff console.
+              </p>
+            </div>
+          )}
 
           {/* Assigned Station (if Staff) */}
           {selectedRole === "staff" && (
@@ -472,54 +437,88 @@ export function AuthCard({
             <UserPlus size={15} />
             {isSubmitting
               ? "Creating..."
-              : `Create ${selectedRole === "staff" ? "Staff" : "Rider"} Account & Redirect`}
+              : "Create Account"}
             <ArrowRight size={14} />
           </button>
         </form>
       )}
 
+      {/* Cross-link to the other account page */}
+      <div className="mt-5 pt-4 border-t border-slate-100 text-center text-xs text-slate-500">
+        {mode === "signin" ? (
+          <>
+            New to EasyRide?{" "}
+            <button
+              type="button"
+              onClick={() => onSwitchMode("signup")}
+              className="font-bold text-teal-800 hover:text-teal-950 hover:underline cursor-pointer"
+              data-purpose="go-to-signup"
+            >
+              Create an account
+            </button>
+          </>
+        ) : (
+          <>
+            Already have an account?{" "}
+            <button
+              type="button"
+              onClick={() => onSwitchMode("signin")}
+              className="font-bold text-teal-800 hover:text-teal-950 hover:underline cursor-pointer"
+              data-purpose="go-to-signin"
+            >
+              Sign in
+            </button>
+          </>
+        )}
+      </div>
+
       {/* Footer Info */}
-      <div className="mt-5 text-center">
+      <div className="mt-3 text-center">
         <p className="text-[11px] text-slate-400">
           All accounts and states persist securely in your browser's LocalStorage. No server or backend needed.
         </p>
       </div>
-    </div>
-  );
-}
+        </div>
 
-export function AuthModal({
-  open,
-  initialMode = "signin",
-  initialRole = "rider",
-  stations = [],
-  auth,
-  onClose,
-  onSuccess,
-}: {
-  open: boolean;
-  initialMode?: "signin" | "signup";
-  initialRole?: UserRole;
-  stations?: EasyRideStation[];
-  auth?: ReturnType<typeof useAuth>;
-  onClose: () => void;
-  onSuccess?: (user: EasyRideUser) => void;
-}) {
-  if (!open) return null;
+        {/* Full-height bicycle artwork panel on the right */}
+        <aside
+            className="relative hidden overflow-hidden bg-gradient-to-br from-teal-800 via-teal-900 to-teal-950 lg:flex lg:flex-col"
+            data-purpose="auth-artwork"
+          >
+            <div className="pointer-events-none absolute -right-16 -top-16 h-64 w-64 rounded-full bg-amber-400/20 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-12 h-64 w-64 rounded-full bg-teal-400/20 blur-3xl" />
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 enter">
-      <AuthCard
-        initialMode={initialMode}
-        initialRole={initialRole}
-        stations={stations}
-        auth={auth}
-        onClose={onClose}
-        onSuccess={(user) => {
-          onClose();
-          onSuccess?.(user);
-        }}
-      />
+            <div className="relative px-8 pt-8">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-[10px] font-bold uppercase tracking-[.18em] text-amber-300">
+                <Bike size={13} /> EasyRide fleet
+              </span>
+              <h2 className="mt-5 font-display text-2xl font-extrabold leading-tight">
+                Your next ride is
+                <br />
+                <span className="text-amber-300">already waiting.</span>
+              </h2>
+              <p className="mt-2 max-w-[250px] text-xs leading-5 text-white/70">
+                Real bikes, real photos and live availability at stations across
+                Makerere, Kampala.
+              </p>
+            </div>
+
+            <div className="relative flex flex-1 items-center justify-center px-3 py-2">
+              <div className="pointer-events-none absolute h-64 w-64 rounded-full border border-white/10 bg-white/5" />
+              <img
+                src="/hero-bike.png"
+                alt="EasyRide bicycle"
+                className="relative w-full max-w-[480px] drop-shadow-[0_28px_45px_rgba(0,0,0,0.5)]"
+                data-purpose="auth-bike-image"
+              />
+            </div>
+
+            <div className="relative flex items-center gap-2 border-t border-white/10 px-8 py-5 text-[11px] font-semibold text-white/70">
+              <ShieldCheck size={15} className="text-amber-300" />
+              Safety-checked at every handoff
+            </div>
+        </aside>
+      </div>
     </div>
   );
 }

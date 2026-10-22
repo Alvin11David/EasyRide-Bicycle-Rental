@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useSearch } from "wouter";
 import {
   ArrowLeft, ArrowRight, Bike, Building2,
   Check, ChevronDown, ChevronLeft, ChevronRight, CircleAlert, Clock3, Compass,
@@ -12,7 +12,7 @@ import type {
 } from "@workspace/api-client-react";
 import { useEasyRide } from "@/hooks/use-easyride";
 import { useAuth, type EasyRideUser, type UserRole, DEFAULT_USERS } from "@/hooks/use-auth";
-import { AuthCard, AuthModal } from "@/components/auth-modal";
+import { AuthPanel } from "@/components/auth-page";
 import { CustomerView } from "@/components/customer-view";
 import ReservationView from "@/components/reservation-view";
 import StaffDashboard from "@/components/staff-dashboard";
@@ -80,13 +80,13 @@ const bikeCategories = [
 function Topbar({
   activePath,
   currentUser,
-  onOpenAuthModal,
+  onOpenAuth,
   onSignOut,
   onQuickDemoLogin,
 }: {
   activePath: string;
   currentUser: EasyRideUser | null;
-  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onOpenAuth: (mode: "signin" | "signup", role?: UserRole) => void;
   onSignOut: () => void;
   onQuickDemoLogin: (role: UserRole) => void;
 }) {
@@ -98,15 +98,12 @@ function Topbar({
 
   const links = useMemo(() => {
     if (!currentUser) {
-      // Unauthenticated Guest: only public Explore / Home link
-      return [
-        { href: "/", label: "Explore Fleet", active: isGuest, icon: Compass },
-      ];
+      // Unauthenticated guests only see the auth actions in the top bar.
+      return [];
     }
     if (currentUser.role === "rider") {
-      // Customer: Home and My Rider Dashboard
+      // Customer: My Rider Dashboard
       return [
-        { href: "/", label: "Explore Fleet", active: isGuest, icon: Compass },
         { href: "/rider", label: "My Rider Dashboard", active: isRider, icon: User },
       ];
     }
@@ -121,6 +118,7 @@ function Topbar({
     <header className="bg-white/90 backdrop-blur-md border-b border-teal-900/10 sticky top-0 z-50">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8 h-16">
         <Logo />
+        {links.length > 0 && (
         <nav className="hidden items-center gap-1.5 md:flex" aria-label="Main navigation">
           {links.map((item) => {
             const Icon = item.icon;
@@ -141,6 +139,7 @@ function Topbar({
             );
           })}
         </nav>
+        )}
 
         {/* User Account & Role Area */}
         <div className="hidden items-center gap-3 sm:flex">
@@ -225,26 +224,19 @@ function Topbar({
           ) : (
             <div className="flex items-center gap-2">
               <button
-                onClick={() => onQuickDemoLogin("rider")}
-                className="hidden sm:inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-xl transition cursor-pointer shadow-xs"
-                title="Sign in immediately as Customer Atugonza"
-              >
-                <span>⚡ Customer (Atugonza)</span>
-              </button>
-              <button
-                onClick={() => onOpenAuthModal("signin")}
+                onClick={() => onOpenAuth("signin")}
                 className="px-3.5 py-1.5 text-xs font-bold text-slate-700 hover:text-teal-900 hover:bg-slate-50 rounded-xl transition cursor-pointer border border-slate-200/80"
                 data-testid="button-signin"
               >
                 Sign In
               </button>
               <button
-                onClick={() => onOpenAuthModal("signup")}
+                onClick={() => onOpenAuth("signup")}
                 className="btn-primary px-3.5 py-1.5 text-xs font-bold rounded-xl cursor-pointer flex items-center gap-1.5 shadow-sm"
                 data-testid="button-signup"
               >
                 <UserPlus size={13} />
-                Sign Up
+                Create Account
               </button>
             </div>
           )}
@@ -310,7 +302,7 @@ function Topbar({
               <button
                 onClick={() => {
                   setOpen(false);
-                  onOpenAuthModal("signin");
+                  onOpenAuth("signin");
                 }}
                 className="py-2.5 px-3 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 bg-white"
               >
@@ -319,11 +311,11 @@ function Topbar({
               <button
                 onClick={() => {
                   setOpen(false);
-                  onOpenAuthModal("signup");
+                  onOpenAuth("signup");
                 }}
                 className="btn-primary py-2.5 px-3 text-xs font-bold rounded-xl"
               >
-                Sign Up
+                Create Account
               </button>
             </div>
           )}
@@ -554,13 +546,13 @@ function BikeCard({
 function GuestDashboard({
   state,
   currentUser,
-  onOpenAuthModal,
+  onOpenAuth,
   onQuickDemoLogin,
   onSignOut,
 }: {
   state: EasyRideState;
   currentUser: EasyRideUser | null;
-  onOpenAuthModal: (mode: "signin" | "signup", role?: UserRole) => void;
+  onOpenAuth: (mode: "signin" | "signup", role?: UserRole) => void;
   onQuickDemoLogin: (role: UserRole) => void;
   onSignOut?: () => void;
 }) {
@@ -660,10 +652,10 @@ function GuestDashboard({
             </button>
           ) : (
             <>
-              <button onClick={() => onOpenAuthModal("signin", "rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
+              <button onClick={() => onOpenAuth("signin", "rider")} className="inline-flex items-center gap-2 rounded-2xl bg-amber-400 px-6 py-3.5 text-sm font-bold text-teal-950 shadow-lg shadow-amber-400/20 hover:bg-amber-300 active:scale-[0.98] transition cursor-pointer" data-testid="button-start-ride">
                 <User size={16} /> Sign In as Rider <ArrowRight size={16}/>
               </button>
-              <button onClick={() => onOpenAuthModal("signup")} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3.5 text-sm font-semibold text-white transition cursor-pointer">
+              <button onClick={() => onOpenAuth("signup")} className="inline-flex items-center gap-2 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/20 px-5 py-3.5 text-sm font-semibold text-white transition cursor-pointer">
                 <UserPlus size={15} /> Create Account
               </button>
             </>
@@ -900,7 +892,7 @@ function RiderDashboard({
   state?: EasyRideState;
   save?: (state: EasyRideState) => void;
   currentUser: EasyRideUser | null;
-  onOpenAuthModal?: (mode: "signin" | "signup", role?: UserRole) => void;
+  onOpenAuth?: (mode: "signin" | "signup", role?: UserRole) => void;
   onQuickDemoLogin?: (role: UserRole) => void;
   onSignOut?: () => void;
 }) {
@@ -918,15 +910,22 @@ function RiderDashboard({
 // ---------------------------------------------------------------------------
 // MAIN PAGE ROUTER
 // ---------------------------------------------------------------------------
+
+/** Only allow same-app, non-auth destinations for the post-login redirect. */
+function sanitizeNextPath(next: string | null): string | null {
+  if (!next || !next.startsWith("/") || next.startsWith("//")) return null;
+  if (/^\/(signin|signup|login|register)(\/|\?|$)/.test(next)) return null;
+  return next;
+}
+
 export default function EasyRidePage() {
   const { state, loading, error, retry, save, saving } = useEasyRide();
   const auth = useAuth();
   const [currentUserOverride, setCurrentUserOverride] = useState<EasyRideUser | null>(null);
   const activeUser = currentUserOverride || auth.currentUser;
   const [path, navigate] = useLocation();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [authModalMode, setAuthModalMode] = useState<"signin" | "signup">("signin");
-  const [authModalRole, setAuthModalRole] = useState<UserRole>("rider");
+  const search = useSearch();
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
 
   const isAuthRoute =
     path === "/login" ||
@@ -934,7 +933,11 @@ export default function EasyRidePage() {
     path === "/signup" ||
     path === "/register";
 
-  const authInitialMode = path === "/signup" || path === "/register" ? "signup" : "signin";
+  // Sign in and Create Account are their own pages, not tabs in a popup.
+  const authMode: "signin" | "signup" =
+    path === "/signup" || path === "/register" ? "signup" : "signin";
+  const authRole: UserRole = searchParams.get("role") === "staff" ? "staff" : "rider";
+  const authNext = sanitizeNextPath(searchParams.get("next"));
 
   const isStaffPath = path.startsWith("/staff") || path.startsWith("/operator");
   const isReservePath = path.startsWith("/reserve");
@@ -943,16 +946,34 @@ export default function EasyRidePage() {
     path.startsWith("/rentals") ||
     isReservePath;
 
-  const openAuthModal = (mode: "signin" | "signup" = "signin", role: UserRole = "rider") => {
-    setAuthModalMode(mode);
-    setAuthModalRole(role);
-    setAuthModalOpen(true);
+  /**
+   * Send the visitor to the dedicated Sign In / Create Account page, keeping
+   * the role they meant to use and the page they were trying to reach.
+   */
+  const openAuth = (mode: "signin" | "signup" = "signin", role: UserRole = "rider") => {
+    const params = new URLSearchParams();
+    if (role === "staff") params.set("role", "staff");
+    const next = isAuthRoute
+      ? authNext
+      : path !== "/"
+        ? `${path}${search}`
+        : null;
+    if (next) params.set("next", next);
+    const query = params.toString();
+    navigate(`/${mode === "signup" ? "signup" : "signin"}${query ? `?${query}` : ""}`);
   };
 
   const handleAuthSuccess = (user: EasyRideUser) => {
-    setAuthModalOpen(false);
     setCurrentUserOverride(user);
-    const targetPath = user.role === "staff" ? "/staff" : "/rider";
+    const staffNext = !!authNext && /^\/(staff|operator)\b/.test(authNext);
+    const targetPath =
+      user.role === "staff"
+        ? staffNext
+          ? authNext!
+          : "/staff"
+        : authNext && !staffNext
+          ? authNext
+          : "/rider";
     navigate(targetPath);
   };
 
@@ -979,22 +1000,31 @@ export default function EasyRidePage() {
       if (!activeUser) {
         return (
           <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
-            <div className="mb-6 p-5 rounded-3xl bg-amber-50 border border-amber-200 text-center w-full shadow-xs">
+            <div className="mb-6 p-6 rounded-3xl bg-amber-50 border border-amber-200 text-center w-full shadow-xs">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-900 text-xs font-bold mb-2">
                 <Lock size={13} /> Station Worker Sign In Required
               </span>
               <h2 className="text-xl font-extrabold text-amber-950">Staff Operations Desk</h2>
-              <p className="text-xs text-slate-600 mt-1.5">
-                Please sign in with your station staff account to inspect roadworthiness, handoff bikes, close returns, and manage quarantine.
+              <p className="text-xs text-slate-600 mt-2 leading-5">
+                Sign in with your station staff account to inspect roadworthiness, handoff bikes, close returns, and manage quarantine.
               </p>
             </div>
-            <AuthCard
-              initialMode="signin"
-              initialRole="staff"
-              stations={state.stations}
-              auth={auth}
-              onSuccess={handleAuthSuccess}
-            />
+            <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-2.5">
+              <button
+                onClick={() => openAuth("signin", "staff")}
+                className="w-full sm:w-auto btn-primary py-2.5 px-5 text-xs font-bold rounded-xl cursor-pointer"
+                data-purpose="gate-signin"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => openAuth("signup", "staff")}
+                className="w-full sm:w-auto bg-white border border-amber-300 text-amber-900 py-2.5 px-5 text-xs font-bold rounded-xl hover:bg-amber-50 cursor-pointer"
+                data-purpose="gate-signup"
+              >
+                Create Staff Account
+              </button>
+            </div>
           </main>
         );
       }
@@ -1044,22 +1074,31 @@ export default function EasyRidePage() {
       if (!activeUser) {
         return (
           <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
-            <div className="mb-6 p-5 rounded-3xl bg-teal-50 border border-teal-200 text-center w-full shadow-xs">
+            <div className="mb-6 p-6 rounded-3xl bg-teal-50 border border-teal-200 text-center w-full shadow-xs">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-teal-100 text-teal-900 text-xs font-bold mb-2">
                 <User size={13} /> Customer Sign In Required
               </span>
               <h2 className="text-xl font-extrabold text-teal-950">Rider Dashboard Access</h2>
-              <p className="text-xs text-slate-600 mt-1.5">
-                Please sign in or create a Rider account to reserve bikes, track active rides, and see what you owe upon return.
+              <p className="text-xs text-slate-600 mt-2 leading-5">
+                Sign in or create a Rider account to reserve bikes, track active rides, and see what you owe upon return.
               </p>
             </div>
-            <AuthCard
-              initialMode="signin"
-              initialRole="rider"
-              stations={state.stations}
-              auth={auth}
-              onSuccess={handleAuthSuccess}
-            />
+            <div className="flex w-full flex-col sm:flex-row items-center justify-center gap-2.5">
+              <button
+                onClick={() => openAuth("signin", "rider")}
+                className="w-full sm:w-auto btn-primary py-2.5 px-5 text-xs font-bold rounded-xl cursor-pointer"
+                data-purpose="gate-signin"
+              >
+                Sign In
+              </button>
+              <button
+                onClick={() => openAuth("signup", "rider")}
+                className="w-full sm:w-auto bg-white border border-teal-300 text-teal-900 py-2.5 px-5 text-xs font-bold rounded-xl hover:bg-teal-50 cursor-pointer"
+                data-purpose="gate-signup"
+              >
+                Create Rider Account
+              </button>
+            </div>
           </main>
         );
       }
@@ -1081,7 +1120,7 @@ export default function EasyRidePage() {
           state={state}
           save={save}
           currentUser={activeUser}
-          onOpenAuthModal={openAuthModal}
+          onOpenAuth={openAuth}
           onQuickDemoLogin={handleQuickDemoLogin}
           onSignOut={handleSignOut}
         />
@@ -1093,14 +1132,14 @@ export default function EasyRidePage() {
       <GuestDashboard
         state={state}
         currentUser={activeUser}
-        onOpenAuthModal={openAuthModal}
+        onOpenAuth={openAuth}
         onQuickDemoLogin={handleQuickDemoLogin}
         onSignOut={handleSignOut}
       />
     );
-  }, [state, loading, error, isStaffPath, isRiderPath, isReservePath, save, saving, activeUser]);
+  }, [state, loading, error, isStaffPath, isRiderPath, isReservePath, path, search, save, saving, activeUser]);
 
-  // Full-page Auth route (/login, /signup, etc.)
+  // Full-page auth routes: /signin (and /login) and /signup (and /register).
   if (isAuthRoute) {
     return (
       <div className="page-shell grain min-h-[100dvh] flex flex-col justify-between">
@@ -1108,22 +1147,24 @@ export default function EasyRidePage() {
           <Topbar
             activePath={path}
             currentUser={activeUser}
-            onOpenAuthModal={openAuthModal}
+            onOpenAuth={openAuth}
             onSignOut={handleSignOut}
             onQuickDemoLogin={handleQuickDemoLogin}
           />
-          <main className="mx-auto max-w-lg px-4 py-12 flex flex-col items-center">
+          <main className="mx-auto max-w-5xl px-4 py-12 flex flex-col items-center">
             <Link
               href="/"
               className="inline-flex items-center gap-1.5 text-xs font-bold text-teal-800 hover:text-teal-950 mb-6 self-start no-underline"
             >
               <ArrowLeft size={14} /> Back to Guest Dashboard
             </Link>
-            <AuthCard
-              initialMode={authInitialMode}
+            <AuthPanel
+              mode={authMode}
+              initialRole={authRole}
               stations={state?.stations || []}
               auth={auth}
               onSuccess={handleAuthSuccess}
+              onSwitchMode={(mode) => openAuth(mode, authRole)}
             />
           </main>
         </div>
@@ -1138,15 +1179,6 @@ export default function EasyRidePage() {
     return (
       <div className="min-h-screen bg-[#f6f9f8] text-slate-800 font-sans antialiased selection:bg-brand-mint selection:text-white">
         {page}
-        <AuthModal
-          open={authModalOpen}
-          initialMode={authModalMode}
-          initialRole={authModalRole}
-          stations={state?.stations || []}
-          auth={auth}
-          onClose={() => setAuthModalOpen(false)}
-          onSuccess={handleAuthSuccess}
-        />
       </div>
     );
   }
@@ -1165,15 +1197,6 @@ export default function EasyRidePage() {
         ) : (
           page
         )}
-        <AuthModal
-          open={authModalOpen}
-          initialMode={authModalMode}
-          initialRole={authModalRole}
-          stations={state?.stations || []}
-          auth={auth}
-          onClose={() => setAuthModalOpen(false)}
-          onSuccess={handleAuthSuccess}
-        />
       </div>
     );
   }
@@ -1184,7 +1207,7 @@ export default function EasyRidePage() {
         <Topbar
           activePath={path}
           currentUser={activeUser}
-          onOpenAuthModal={openAuthModal}
+          onOpenAuth={openAuth}
           onSignOut={handleSignOut}
           onQuickDemoLogin={handleQuickDemoLogin}
         />
@@ -1193,16 +1216,6 @@ export default function EasyRidePage() {
       <footer className="border-t border-[#214f46]/10 px-5 py-6 text-center text-[10px] text-[#849087]">
         <span className="font-semibold text-[#536f60]">{state?.config.serviceName || "EasyRide"}</span> · {isStaffPath ? "Staff Portal (Station Worker)" : isRiderPath ? "Rider Portal (Customer)" : "Guest Public Dashboard"} · Makerere routes · Kampala, Uganda
       </footer>
-
-      <AuthModal
-        open={authModalOpen}
-        initialMode={authModalMode}
-        initialRole={authModalRole}
-        stations={state?.stations || []}
-        auth={auth}
-        onClose={() => setAuthModalOpen(false)}
-        onSuccess={handleAuthSuccess}
-      />
     </div>
   );
 }

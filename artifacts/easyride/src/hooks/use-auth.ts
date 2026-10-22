@@ -10,6 +10,7 @@ export interface EasyRideUser {
   role: UserRole;
   phone?: string;
   stationId?: string; // Station assigned to staff member
+  staffId?: string; // Station-issued ID, required for staff accounts
   avatar?: string;
   createdAt: string;
 }
@@ -47,6 +48,7 @@ export const DEFAULT_USERS: EasyRideUser[] = [
     role: "staff",
     phone: "+256 701 987 654",
     stationId: "station-main",
+    staffId: "ER-STAFF-001",
     avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80",
     createdAt: "2026-01-10T08:30:00.000Z",
   },
@@ -146,9 +148,11 @@ export function useAuth() {
       role: UserRole;
       phone?: string;
       stationId?: string;
+      staffId?: string;
     }): { success: boolean; error?: string; user?: EasyRideUser } => {
       const emailClean = data.email.trim().toLowerCase();
       const nameClean = data.name.trim();
+      const staffIdClean = (data.staffId || "").trim().toUpperCase();
 
       if (!nameClean) {
         return { success: false, error: "Please enter your full name." };
@@ -159,11 +163,29 @@ export function useAuth() {
       if (data.password && data.password.length < 4) {
         return { success: false, error: "Password must be at least 4 characters." };
       }
+      if (data.role === "staff") {
+        if (!staffIdClean) {
+          return { success: false, error: "Please enter your Staff ID." };
+        }
+        if (staffIdClean.length < 4) {
+          return { success: false, error: "Staff ID must be at least 4 characters." };
+        }
+      }
 
       const currentUsers = getStoredUsers();
       const existing = currentUsers.find((u) => u.email.toLowerCase() === emailClean);
       if (existing) {
         return { success: false, error: "An account with this email already exists. Try signing in." };
+      }
+      if (
+        data.role === "staff" &&
+        currentUsers.some(
+          (u) =>
+            u.role === "staff" &&
+            (u.staffId || "").trim().toUpperCase() === staffIdClean,
+        )
+      ) {
+        return { success: false, error: "This Staff ID is already registered. Try signing in." };
       }
 
       const newUser: EasyRideUser = {
@@ -174,6 +196,7 @@ export function useAuth() {
         role: data.role,
         phone: data.phone?.trim() || "",
         stationId: data.role === "staff" ? data.stationId || "station-main" : undefined,
+        staffId: data.role === "staff" ? staffIdClean : undefined,
         createdAt: new Date().toISOString(),
         avatar:
           data.role === "staff"

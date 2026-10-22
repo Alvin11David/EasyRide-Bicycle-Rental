@@ -51,25 +51,11 @@ export type CustomerBikeCategory =
   | "racing"
   | "hybrid";
 
-export interface CustomerCategoryGroup {
-  id: CustomerBikeCategory;
-  label: string;
-  tagline: string;
-}
-
 /**
- * The example bikes we publish with a real photo of the model, grouped by
- * the category the rider browses. Three models per category, fifteen in
- * total — these are the bikes the dashboard puts in front of the rider first.
+ * The example bikes we publish with a real photo of the model: three models
+ * per category, fifteen in total. They lead the catalogue so the named bikes
+ * with their photos are the first thing a rider sees.
  */
-export const FEATURED_CATEGORY_GROUPS: CustomerCategoryGroup[] = [
-  { id: "electric", label: "Electric", tagline: "Pedal-assist power" },
-  { id: "mountain", label: "Mountain", tagline: "Trails & rough roads" },
-  { id: "city", label: "City", tagline: "Everyday city commuting" },
-  { id: "racing", label: "Racing", tagline: "Fast road rides" },
-  { id: "hybrid", label: "Hybrid", tagline: "Fitness & light touring" },
-];
-
 export const FEATURED_BIKES: CustomerFleetBike[] = [
   // --- Electric -----------------------------------------------------------
   {
@@ -306,11 +292,6 @@ export const FEATURED_BIKES: CustomerFleetBike[] = [
     image: "/bikes/giant-escape.jpg",
   },
 ];
-
-/** The featured models of one category, in catalogue order. */
-export function featuredBikesFor(category: CustomerBikeCategory): CustomerFleetBike[] {
-  return FEATURED_BIKES.filter((bike) => bike.type === category);
-}
 
 export const BASE_CUSTOMER_BIKES: CustomerFleetBike[] = [
   {
@@ -932,81 +913,6 @@ export function CustomerView({
         {/* END: Breadcrumb Bar */}
 
         <main className="max-w-7xl mx-auto px-4 sm:px-8 pb-16 space-y-7">
-          {/* BEGIN: Featured Models Showcase */}
-          <section className="space-y-4" data-purpose="featured-models">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div className="flex items-center space-x-2 text-brand-dark">
-                <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-8l2.5-2.5a2.12 2.12 0 013 3L16 14l-4 4-6-6 4-4z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
-                <h2 className="text-base font-bold font-display tracking-tight text-slate-900">Featured Models by Category</h2>
-              </div>
-              <p className="text-xs text-slate-500">
-                {FEATURED_BIKES.length} example bikes with real photos — tap a model to reserve it.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-              {FEATURED_CATEGORY_GROUPS.map((group) => {
-                const models = featuredBikesFor(group.id);
-                return (
-                  <div
-                    key={group.id}
-                    className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden flex flex-col"
-                    data-purpose="featured-category"
-                    data-category={group.id}
-                  >
-                    <button
-                      onClick={() => {
-                        setCategory(group.id);
-                        setCurrentPage(1);
-                        catalogSectionRef.current?.scrollIntoView({ behavior: "smooth" });
-                      }}
-                      className="flex items-center justify-between gap-2 px-4 py-2.5 bg-brand-surface border-b border-slate-100 hover:bg-brand-mintLight transition cursor-pointer text-left"
-                      title={`Show all ${group.label.toLowerCase()} bikes`}
-                    >
-                      <span>
-                        <span className="block text-xs font-bold uppercase tracking-wider text-brand-dark">{group.label}</span>
-                        <span className="block text-[10px] text-slate-400">{group.tagline}</span>
-                      </span>
-                      <span className="shrink-0 text-[10px] font-semibold text-slate-400">{models.length} models</span>
-                    </button>
-
-                    <div className="divide-y divide-slate-100 flex-1">
-                      {models.map((bike) => (
-                        <button
-                          key={bike.id}
-                          type="button"
-                          onClick={() => navigate(`/reserve?bike=${bike.id}`)}
-                          className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-brand-surface transition cursor-pointer group"
-                          data-purpose="featured-bike"
-                          data-bike={bike.id}
-                        >
-                          <img
-                            src={bike.image}
-                            alt={bike.name}
-                            loading="lazy"
-                            className="w-14 h-14 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0 group-hover:scale-105 transition duration-200"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="block text-xs font-bold text-slate-900 truncate" data-purpose="featured-bike-name">{bike.name}</span>
-                            <span className="block text-[11px] text-slate-400 truncate">
-                              {bike.brand} &middot; {bike.station}
-                            </span>
-                            <span className="block text-[11px] font-bold text-brand-primary">
-                              {money(bike.rate, currency)}
-                              <span className="font-normal text-slate-400">/hour</span>
-                            </span>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-          {/* END: Featured Models Showcase */}
 
           {/* BEGIN: Shop by Category Row */}
           <section className="space-y-3" data-purpose="category-tabs">
