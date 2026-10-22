@@ -19,7 +19,6 @@ import {
   DAY_PASS_HOURS,
   hireAmount,
   KAMPALA_STATIONS,
-  readCustomerFleet,
   type CustomerPaymentMethod,
 } from "@/lib/customer-bridge";
 import { money } from "@/lib/format";
@@ -32,7 +31,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import {
-  generate100Fleet,
+  loadCustomerFleet,
   type CustomerFleetBike,
 } from "@/components/customer-view";
 
@@ -113,13 +112,13 @@ function WalletIcon() {
   );
 }
 
-/** Studio shot used for each bike family. */
+/** Real bike catalogue photo used for each bike family. */
 const BIKE_IMAGES: Record<string, string> = {
-  mountain: "/bikes/bike-5.jpg",
-  city: "/bikes/bike-3.jpg",
-  hybrid: "/bikes/bike-2.jpg",
-  electric: "/bikes/bike-2.jpg",
-  racing: "/bikes/bike-4.jpg",
+  mountain: "/bikes/trek-marlin-7.jpg",
+  city: "/bikes/schwinn-wayfarer.jpg",
+  hybrid: "/bikes/trek-fx-3.jpg",
+  electric: "/bikes/specialized-turbo-vado.jpg",
+  racing: "/bikes/specialized-allez.jpg",
 };
 
 const BIKE_SPECS: Record<
@@ -167,11 +166,9 @@ function defaultPickupTime(): string {
   return now.toISOString().slice(0, 16);
 }
 
-/** The rider catalogue, falling back to the seeded fleet. */
+/** The rider catalogue, rebuilt from the published catalogue when needed. */
 function loadFleet(): CustomerFleetBike[] {
-  const stored = readCustomerFleet() as unknown as CustomerFleetBike[];
-  if (stored.length) return stored;
-  return generate100Fleet();
+  return loadCustomerFleet();
 }
 
 export function ReservationView({
@@ -236,7 +233,9 @@ export function ReservationView({
 
   const station = KAMPALA_STATIONS.find((s) => s.name === bike?.station);
   const specs = BIKE_SPECS[bike?.type ?? "city"] ?? BIKE_SPECS.city;
-  const bikeImage = BIKE_IMAGES[bike?.type ?? "city"] ?? BIKE_IMAGES.city;
+  // The bike's own photo wins; the family photo is only the fallback.
+  const bikeImage =
+    bike?.image ?? BIKE_IMAGES[bike?.type ?? "city"] ?? BIKE_IMAGES.city;
 
   /** The four hubs shown in the station strip, always including this depot. */
   const stationStrip = useMemo(() => {

@@ -266,12 +266,23 @@ export default function StaffAddBike({
     setError("");
     setRegistered({ id, code: cleanCode });
 
-    // Corner notification: the bike is on the fleet from here on.
+    // Corner notification: the bicycle and its details are now in the system.
     toast({
-      title: `${cleanCode} joined the fleet`,
-      description: `${cleanModel} is parked at ${
-        chosenStation?.name ?? "the station"
-      } and is ready to rent.`,
+      variant: "success",
+      title: "Bicycle added successfully",
+      description: (
+        <div className="mt-1 space-y-0.5 text-xs text-emerald-900/90">
+          <p className="font-bold text-emerald-950">
+            {cleanCode} · {cleanModel}
+          </p>
+          <p>Category: {type}</p>
+          <p>Station: {chosenStation?.name ?? "—"}</p>
+          <p>
+            Condition: {condition} • Status:{" "}
+            {holdForMaintenance ? "Held for maintenance" : "Available to rent"}
+          </p>
+        </div>
+      ),
     });
   };
 

@@ -23,6 +23,8 @@ export interface CustomerFleetBike {
   status: "available" | "rented" | "maintenance";
   certified: boolean;
   imageBg: string;
+  /** Photo of the actual model, served from `/bikes/`. */
+  image?: string;
 }
 
 export interface CustomerOrder {
@@ -41,6 +43,274 @@ export interface CustomerOrder {
 }
 
 export { KAMPALA_STATIONS };
+
+export type CustomerBikeCategory =
+  | "electric"
+  | "mountain"
+  | "city"
+  | "racing"
+  | "hybrid";
+
+export interface CustomerCategoryGroup {
+  id: CustomerBikeCategory;
+  label: string;
+  tagline: string;
+}
+
+/**
+ * The example bikes we publish with a real photo of the model, grouped by
+ * the category the rider browses. Three models per category, fifteen in
+ * total — these are the bikes the dashboard puts in front of the rider first.
+ */
+export const FEATURED_CATEGORY_GROUPS: CustomerCategoryGroup[] = [
+  { id: "electric", label: "Electric", tagline: "Pedal-assist power" },
+  { id: "mountain", label: "Mountain", tagline: "Trails & rough roads" },
+  { id: "city", label: "City", tagline: "Everyday city commuting" },
+  { id: "racing", label: "Racing", tagline: "Fast road rides" },
+  { id: "hybrid", label: "Hybrid", tagline: "Fitness & light touring" },
+];
+
+export const FEATURED_BIKES: CustomerFleetBike[] = [
+  // --- Electric -----------------------------------------------------------
+  {
+    id: "BK-101-KMP",
+    code: "#BK-101-KMP",
+    name: "Aventon Pace 500.3",
+    brand: "Aventon",
+    type: "electric",
+    station: "Makerere Hill Road",
+    rate: 220,
+    rating: 4.8,
+    reviews: 64,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/aventon-pace-5003.jpg",
+  },
+  {
+    id: "BK-102-KMP",
+    code: "#BK-102-KMP",
+    name: "Specialized Turbo Vado",
+    brand: "Specialized",
+    type: "electric",
+    station: "Kiwatule Rec Centre",
+    rate: 240,
+    rating: 4.9,
+    reviews: 87,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/specialized-turbo-vado.jpg",
+  },
+  {
+    id: "BK-103-KMP",
+    code: "#BK-103-KMP",
+    name: "Rad Power RadRunner",
+    brand: "Rad Power Bikes",
+    type: "electric",
+    station: "Bugolobi Village Mall",
+    rate: 260,
+    rating: 4.7,
+    reviews: 52,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/rad-power-radrunner.jpg",
+  },
+
+  // --- Mountain -----------------------------------------------------------
+  {
+    id: "BK-104-KMP",
+    code: "#BK-104-KMP",
+    name: "Trek Marlin 7",
+    brand: "Trek",
+    type: "mountain",
+    station: "Makerere Hill Road",
+    rate: 180,
+    rating: 4.7,
+    reviews: 73,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/trek-marlin-7.jpg",
+  },
+  {
+    id: "BK-105-KMP",
+    code: "#BK-105-KMP",
+    name: "Specialized Rockhopper",
+    brand: "Specialized",
+    type: "mountain",
+    station: "Ntinda Junction",
+    rate: 170,
+    rating: 4.6,
+    reviews: 41,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/specialized-rockhopper.jpg",
+  },
+  {
+    id: "BK-106-KMP",
+    code: "#BK-106-KMP",
+    name: "Giant Talon",
+    brand: "Giant",
+    type: "mountain",
+    station: "Wandegeya Market",
+    rate: 175,
+    rating: 4.6,
+    reviews: 38,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/giant-talon.jpg",
+  },
+
+  // --- City ---------------------------------------------------------------
+  {
+    id: "BK-107-KMP",
+    code: "#BK-107-KMP",
+    name: "Schwinn Wayfarer",
+    brand: "Schwinn",
+    type: "city",
+    station: "Acacia Mall",
+    rate: 100,
+    rating: 4.5,
+    reviews: 96,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/schwinn-wayfarer.jpg",
+  },
+  {
+    id: "BK-108-KMP",
+    code: "#BK-108-KMP",
+    name: "Priority Classic Plus",
+    brand: "Priority",
+    type: "city",
+    station: "Nakaserero Market",
+    rate: 110,
+    rating: 4.6,
+    reviews: 58,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/priority-classic-plus.jpg",
+  },
+  {
+    id: "BK-109-KMP",
+    code: "#BK-109-KMP",
+    name: "Marin Fairfax",
+    brand: "Marin",
+    type: "city",
+    station: "Kasubi Tombs",
+    rate: 120,
+    rating: 4.7,
+    reviews: 44,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/marin-fairfax.jpg",
+  },
+
+  // --- Racing -------------------------------------------------------------
+  {
+    id: "BK-110-KMP",
+    code: "#BK-110-KMP",
+    name: "Specialized Allez",
+    brand: "Specialized",
+    type: "racing",
+    station: "Makerere Hill Road",
+    rate: 190,
+    rating: 4.8,
+    reviews: 61,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/specialized-allez.jpg",
+  },
+  {
+    id: "BK-111-KMP",
+    code: "#BK-111-KMP",
+    name: "Trek Domane",
+    brand: "Trek",
+    type: "racing",
+    station: "Ntinda Junction",
+    rate: 200,
+    rating: 4.8,
+    reviews: 55,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/trek-domane.jpg",
+  },
+  {
+    id: "BK-112-KMP",
+    code: "#BK-112-KMP",
+    name: "Cannondale CAAD13",
+    brand: "Cannondale",
+    type: "racing",
+    station: "Kiwatule Rec Centre",
+    rate: 195,
+    rating: 4.7,
+    reviews: 47,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/cannondale-caad13.jpg",
+  },
+
+  // --- Hybrid -------------------------------------------------------------
+  {
+    id: "BK-113-KMP",
+    code: "#BK-113-KMP",
+    name: "Trek FX Series",
+    brand: "Trek",
+    type: "hybrid",
+    station: "Bugolobi Village Mall",
+    rate: 140,
+    rating: 4.7,
+    reviews: 88,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/trek-fx-3.jpg",
+  },
+  {
+    id: "BK-114-KMP",
+    code: "#BK-114-KMP",
+    name: "Cannondale Quick",
+    brand: "Cannondale",
+    type: "hybrid",
+    station: "Acacia Mall",
+    rate: 145,
+    rating: 4.6,
+    reviews: 63,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/cannondale-quick.jpg",
+  },
+  {
+    id: "BK-115-KMP",
+    code: "#BK-115-KMP",
+    name: "Giant Escape",
+    brand: "Giant",
+    type: "hybrid",
+    station: "Wandegeya Market",
+    rate: 135,
+    rating: 4.5,
+    reviews: 71,
+    status: "available",
+    certified: true,
+    imageBg: "bike-card-backdrop",
+    image: "/bikes/giant-escape.jpg",
+  },
+];
+
+/** The featured models of one category, in catalogue order. */
+export function featuredBikesFor(category: CustomerBikeCategory): CustomerFleetBike[] {
+  return FEATURED_BIKES.filter((bike) => bike.type === category);
+}
 
 export const BASE_CUSTOMER_BIKES: CustomerFleetBike[] = [
   {
@@ -158,7 +428,9 @@ export const BASE_CUSTOMER_BIKES: CustomerFleetBike[] = [
 ];
 
 export function generate100Fleet(): CustomerFleetBike[] {
-  const fleet: CustomerFleetBike[] = [...BASE_CUSTOMER_BIKES];
+  // The photographed example models lead the fleet so the rider meets the
+  // real bikes before the rest of the catalogue.
+  const fleet: CustomerFleetBike[] = [...FEATURED_BIKES, ...BASE_CUSTOMER_BIKES];
   const stationsList = KAMPALA_STATIONS.map((s) => s.name);
 
   const mountainModels = [
@@ -264,6 +536,64 @@ export function generate100Fleet(): CustomerFleetBike[] {
 
 const FLEET_STORAGE_KEY = "bikerent_customer_fleet_v1";
 const ORDERS_STORAGE_KEY = "bikerent_customer_orders_v1";
+const FLEET_VERSION_KEY = "bikerent_customer_fleet_version_v1";
+
+/**
+ * Bumped whenever the published catalogue changes shape (new models, new
+ * photos). A fleet saved by an older build is rebuilt from the catalogue so
+ * the rider sees the current bikes, but the live state of every bike the
+ * rider already has — rented, returned, back in the workshop — is carried
+ * across so an active hire is never dropped.
+ */
+export const CATALOGUE_VERSION = 2;
+
+function readStoredFleet(): { bikes: CustomerFleetBike[]; version: string } {
+  if (typeof window === "undefined") return { bikes: [], version: "" };
+  let bikes: CustomerFleetBike[] = [];
+  let version = "";
+  try {
+    const raw = window.localStorage.getItem(FLEET_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) bikes = parsed as CustomerFleetBike[];
+    }
+    version = window.localStorage.getItem(FLEET_VERSION_KEY) ?? "";
+  } catch {}
+  return { bikes, version };
+}
+
+function writeStoredFleet(bikes: CustomerFleetBike[]): void {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(FLEET_STORAGE_KEY, JSON.stringify(bikes));
+    window.localStorage.setItem(FLEET_VERSION_KEY, String(CATALOGUE_VERSION));
+  } catch {}
+}
+
+/**
+ * Load the rider's fleet, rebuilding it when the stored copy was written by
+ * an older catalogue version.
+ */
+export function loadCustomerFleet(): CustomerFleetBike[] {
+  const { bikes: stored, version } = readStoredFleet();
+  if (stored.length && version === String(CATALOGUE_VERSION)) return stored;
+
+  const fresh = generate100Fleet();
+  const previous = new Map(stored.map((bike) => [bike.id, bike]));
+  const published = new Set(fresh.map((bike) => bike.id));
+
+  // Carry the live status of every bike we knew about, then keep anything
+  // the rider had that we no longer publish.
+  const merged = fresh.map((bike) => {
+    const old = previous.get(bike.id);
+    return old ? { ...bike, status: old.status } : bike;
+  });
+  const extras = stored.filter((bike) => !published.has(bike.id));
+
+  const result = [...merged, ...extras];
+  writeStoredFleet(result);
+  return result;
+}
 
 export function CustomerView({
   state,
@@ -283,21 +613,7 @@ export function CustomerView({
   const currency = state?.config.currency ?? "UGX";
   const [, navigate] = useLocation();
 
-  const [fleet, setFleet] = useState<CustomerFleetBike[]>(() => {
-    if (typeof window === "undefined") return generate100Fleet();
-    try {
-      const stored = localStorage.getItem(FLEET_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-      }
-    } catch {}
-    const init = generate100Fleet();
-    try {
-      localStorage.setItem(FLEET_STORAGE_KEY, JSON.stringify(init));
-    } catch {}
-    return init;
-  });
+  const [fleet, setFleet] = useState<CustomerFleetBike[]>(() => loadCustomerFleet());
 
   const [orders, setOrders] = useState<CustomerOrder[]>(() => {
     if (typeof window === "undefined") return [];
@@ -310,9 +626,7 @@ export function CustomerView({
 
   const saveFleetLocal = (newFleet: CustomerFleetBike[]) => {
     setFleet(newFleet);
-    try {
-      localStorage.setItem(FLEET_STORAGE_KEY, JSON.stringify(newFleet));
-    } catch {}
+    writeStoredFleet(newFleet);
   };
 
   const saveOrdersLocal = (newOrders: CustomerOrder[]) => {
@@ -374,6 +688,15 @@ export function CustomerView({
 
   const totalBikes = filteredBikes.length;
   const totalPages = Math.max(1, Math.ceil(totalBikes / itemsPerPage));
+
+  /** Live bike counts for the category tabs, straight from the fleet. */
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: fleet.length };
+    for (const bike of fleet) {
+      counts[bike.type] = (counts[bike.type] ?? 0) + 1;
+    }
+    return counts;
+  }, [fleet]);
 
   useEffect(() => {
     if (currentPage > totalPages) setCurrentPage(1);
@@ -609,6 +932,82 @@ export function CustomerView({
         {/* END: Breadcrumb Bar */}
 
         <main className="max-w-7xl mx-auto px-4 sm:px-8 pb-16 space-y-7">
+          {/* BEGIN: Featured Models Showcase */}
+          <section className="space-y-4" data-purpose="featured-models">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div className="flex items-center space-x-2 text-brand-dark">
+                <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-8l2.5-2.5a2.12 2.12 0 013 3L16 14l-4 4-6-6 4-4z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
+                </svg>
+                <h2 className="text-base font-bold font-display tracking-tight text-slate-900">Featured Models by Category</h2>
+              </div>
+              <p className="text-xs text-slate-500">
+                {FEATURED_BIKES.length} example bikes with real photos — tap a model to reserve it.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+              {FEATURED_CATEGORY_GROUPS.map((group) => {
+                const models = featuredBikesFor(group.id);
+                return (
+                  <div
+                    key={group.id}
+                    className="bg-white rounded-2xl border border-brand-border shadow-sm overflow-hidden flex flex-col"
+                    data-purpose="featured-category"
+                    data-category={group.id}
+                  >
+                    <button
+                      onClick={() => {
+                        setCategory(group.id);
+                        setCurrentPage(1);
+                        catalogSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+                      }}
+                      className="flex items-center justify-between gap-2 px-4 py-2.5 bg-brand-surface border-b border-slate-100 hover:bg-brand-mintLight transition cursor-pointer text-left"
+                      title={`Show all ${group.label.toLowerCase()} bikes`}
+                    >
+                      <span>
+                        <span className="block text-xs font-bold uppercase tracking-wider text-brand-dark">{group.label}</span>
+                        <span className="block text-[10px] text-slate-400">{group.tagline}</span>
+                      </span>
+                      <span className="shrink-0 text-[10px] font-semibold text-slate-400">{models.length} models</span>
+                    </button>
+
+                    <div className="divide-y divide-slate-100 flex-1">
+                      {models.map((bike) => (
+                        <button
+                          key={bike.id}
+                          type="button"
+                          onClick={() => navigate(`/reserve?bike=${bike.id}`)}
+                          className="w-full flex items-center gap-3 px-3 py-2.5 text-left hover:bg-brand-surface transition cursor-pointer group"
+                          data-purpose="featured-bike"
+                          data-bike={bike.id}
+                        >
+                          <img
+                            src={bike.image}
+                            alt={bike.name}
+                            loading="lazy"
+                            className="w-14 h-14 rounded-xl object-cover bg-slate-100 border border-slate-200 shrink-0 group-hover:scale-105 transition duration-200"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-xs font-bold text-slate-900 truncate" data-purpose="featured-bike-name">{bike.name}</span>
+                            <span className="block text-[11px] text-slate-400 truncate">
+                              {bike.brand} &middot; {bike.station}
+                            </span>
+                            <span className="block text-[11px] font-bold text-brand-primary">
+                              {money(bike.rate, currency)}
+                              <span className="font-normal text-slate-400">/hour</span>
+                            </span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+          {/* END: Featured Models Showcase */}
+
           {/* BEGIN: Shop by Category Row */}
           <section className="space-y-3" data-purpose="category-tabs">
             <div className="flex items-center space-x-2 text-brand-dark">
@@ -635,7 +1034,7 @@ export function CustomerView({
                   </svg>
                 </div>
                 <span className="text-sm font-bold tracking-wide">All Bikes</span>
-                <span className={`text-[11px] font-medium ${category === "all" ? "text-brand-mint" : "text-slate-400"}`}>100 bikes</span>
+                <span className={`text-[11px] font-medium ${category === "all" ? "text-brand-mint" : "text-slate-400"}`}>{categoryCounts.all} bikes</span>
               </button>
 
               {/* Electric */}
@@ -653,7 +1052,7 @@ export function CustomerView({
                   </svg>
                 </div>
                 <span className="text-sm font-semibold">Electric</span>
-                <span className="text-[11px] text-slate-400">0 bikes</span>
+                <span className="text-[11px] text-slate-400">{categoryCounts.electric ?? 0} bikes</span>
               </button>
 
               {/* Mountain */}
@@ -671,7 +1070,7 @@ export function CustomerView({
                   </svg>
                 </div>
                 <span className="text-sm font-semibold">Mountain</span>
-                <span className="text-[11px] text-slate-400">40 bikes</span>
+                <span className="text-[11px] text-slate-400">{categoryCounts.mountain ?? 0} bikes</span>
               </button>
 
               {/* City */}
@@ -689,7 +1088,7 @@ export function CustomerView({
                   </svg>
                 </div>
                 <span className="text-sm font-semibold">City</span>
-                <span className="text-[11px] text-slate-400">14 bikes</span>
+                <span className="text-[11px] text-slate-400">{categoryCounts.city ?? 0} bikes</span>
               </button>
 
               {/* Racing */}
@@ -707,7 +1106,7 @@ export function CustomerView({
                   </svg>
                 </div>
                 <span className="text-sm font-semibold">Racing</span>
-                <span className="text-[11px] text-slate-400">0 bikes</span>
+                <span className="text-[11px] text-slate-400">{categoryCounts.racing ?? 0} bikes</span>
               </button>
 
               {/* Hybrid */}
@@ -725,7 +1124,7 @@ export function CustomerView({
                   </svg>
                 </div>
                 <span className="text-sm font-semibold">Hybrid</span>
-                <span className="text-[11px] text-slate-400">26 bikes</span>
+                <span className="text-[11px] text-slate-400">{categoryCounts.hybrid ?? 0} bikes</span>
               </button>
             </div>
           </section>
@@ -1009,7 +1408,43 @@ export function CustomerView({
                   return (
                     <article key={bike.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs hover:shadow-lg transition duration-200 flex flex-col justify-between group" data-purpose="bike-card">
                       <div>
-                        {isMaintenance ? (
+                        {bike.image ? (
+                          <div className="relative h-44 bg-slate-100 overflow-hidden">
+                            <img
+                              src={bike.image}
+                              alt={bike.name}
+                              loading="lazy"
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              data-purpose="bike-card-image"
+                            />
+                            <span className="absolute top-3 left-3 px-2 py-0.5 bg-white/90 text-slate-600 text-[10px] font-mono font-bold rounded shadow-xs z-10">
+                              {bike.code}
+                            </span>
+                            {isMaintenance ? (
+                              <span className="absolute top-3 right-3 px-2.5 py-0.5 bg-slate-700/90 text-white text-[9px] font-extrabold uppercase rounded-full z-10">
+                                Under Maintenance
+                              </span>
+                            ) : isRented ? (
+                              <span className="absolute top-3 right-3 px-2.5 py-0.5 bg-brand-primary/10 text-brand-primary border border-brand-primary/20 text-[9px] font-extrabold uppercase rounded-full z-10 flex items-center gap-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-brand-primary"></span> Currently Rented
+                              </span>
+                            ) : (
+                              <span className="absolute top-3 right-3 px-2.5 py-0.5 bg-brand-mintLight text-brand-dark border border-brand-mint/30 text-[10px] font-extrabold uppercase rounded-full z-10">
+                                ● Available
+                              </span>
+                            )}
+                            {isMaintenance && (
+                              <div className="absolute bottom-2 inset-x-2 py-1 bg-slate-700/90 text-white text-[10px] font-bold text-center rounded z-10">
+                                Being serviced
+                              </div>
+                            )}
+                            {isRented && (
+                              <div className="absolute bottom-2 inset-x-2 py-1 bg-brand-primary/90 text-white text-[10px] font-bold text-center rounded z-10">
+                                Will be available soon
+                              </div>
+                            )}
+                          </div>
+                        ) : isMaintenance ? (
                           <div className="h-44 bg-[#646874] flex flex-col items-center justify-center text-center p-4">
                             <span className="text-white font-bold text-sm tracking-wider uppercase font-display">UNDER MAINTENANCE</span>
                             <span className="text-slate-300 text-xs mt-1 font-normal">Being serviced</span>
@@ -1056,8 +1491,8 @@ export function CustomerView({
                         )}
 
                         <div className="p-5 space-y-2">
-                          <h4 className="font-bold text-base text-slate-900 leading-snug font-display">${bike.name}</h4>
-                          <p className="text-xs text-slate-400 font-medium">${bike.brand}</p>
+                          <h4 className="font-bold text-base text-slate-900 leading-snug font-display">{bike.name}</h4>
+                          <p className="text-xs text-slate-400 font-medium">{bike.brand}</p>
                           <div className="flex items-center text-xs font-semibold text-slate-800 pt-0.5">
                             <span className="text-slate-900">★★★★☆</span>
                             <span className="ml-1.5 font-bold text-slate-900 text-xs">{bike.rating}</span>

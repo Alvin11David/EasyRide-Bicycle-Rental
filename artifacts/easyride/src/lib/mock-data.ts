@@ -27,16 +27,16 @@ export interface BikeMeta {
 export const bikeMetadata: Record<string, BikeMeta> = {
   // Electric bikes
   "bike-elec-1": {
-    modelName: "Trek FX+ 3 E-Bike",
+    modelName: "Aventon Pace 500.3",
     type: "Electric",
-    image: "/bikes/bike-1.jpg",
-    specs: { range: "65 km", speed: "32 km/h", power: "250W", highlight: "Long-range pedal assist" },
+    image: "/bikes/aventon-pace-5003.jpg",
+    specs: { range: "40 km", speed: "25 km/h", power: "500W", highlight: "Step-through commuter with rear rack" },
   },
   "bike-elec-2": {
-    modelName: "Cannondale Tesoro Neo X",
+    modelName: "Specialized Turbo Vado",
     type: "Electric",
-    image: "/bikes/bike-2.jpg",
-    specs: { range: "75 km", speed: "35 km/h", power: "500Wh", highlight: "Bosch Smart System" },
+    image: "/bikes/specialized-turbo-vado.jpg",
+    specs: { range: "60 km", speed: "32 km/h", power: "250W", highlight: "Ultra-smooth commuter motor" },
   },
   "bike-elec-3": {
     modelName: "Specialized Turbo Vado 4.0",
@@ -59,21 +59,21 @@ export const bikeMetadata: Record<string, BikeMeta> = {
 
   // Mountain bikes
   "bike-mtn-1": {
-    modelName: "Trek Marlin 7 Gen 3",
+    modelName: "Trek Marlin 7",
     type: "Mountain",
-    image: "/bikes/bike-2.jpg",
+    image: "/bikes/trek-marlin-7.jpg",
     specs: { gears: "10-speed Deore", weight: "13.8 kg", highlight: "RockShox Judy fork lockout" },
   },
   "bike-mtn-2": {
-    modelName: "Giant Talon 29 1",
+    modelName: "Giant Talon",
     type: "Mountain",
-    image: "/bikes/bike-3.jpg",
+    image: "/bikes/giant-talon.jpg",
     specs: { gears: "12-speed Shimano", weight: "13.2 kg", highlight: "29-inch tubeless-ready rims" },
   },
   "bike-mtn-3": {
-    modelName: "Specialized Rockhopper Comp",
+    modelName: "Specialized Rockhopper",
     type: "Mountain",
-    image: "/bikes/bike-4.jpg",
+    image: "/bikes/specialized-rockhopper.jpg",
     specs: { gears: "9-speed MicroSHIFT", weight: "12.9 kg", highlight: "Hydraulic disc trail brakes" },
   },
   "bike-mtn-4": {
@@ -91,22 +91,22 @@ export const bikeMetadata: Record<string, BikeMeta> = {
 
   // City bikes
   "bike-city-1": {
-    modelName: "Trek FX 3 Disc Commuter",
+    modelName: "Schwinn Wayfarer",
     type: "City",
-    image: "/bikes/bike-3.jpg",
-    specs: { gears: "10-speed Shimano", weight: "11.4 kg", highlight: "Lightweight alloy frame & rack" },
+    image: "/bikes/schwinn-wayfarer.jpg",
+    specs: { gears: "7-speed", weight: "11.9 kg", highlight: "Comfort cruiser with fenders & rack" },
   },
   "bike-city-2": {
-    modelName: "Giant Escape 3 City",
+    modelName: "Priority Classic Plus",
     type: "City",
-    image: "/bikes/bike-4.jpg",
-    specs: { gears: "21-speed Shimano", weight: "12.1 kg", highlight: "Upright geometry & mudguards" },
+    image: "/bikes/priority-classic-plus.jpg",
+    specs: { gears: "8-speed", weight: "12.3 kg", highlight: "Shimano 8-speed with fenders" },
   },
   "bike-city-3": {
-    modelName: "Specialized Sirrus X 2.0",
+    modelName: "Marin Fairfax",
     type: "City",
-    image: "/bikes/bike-5.jpg",
-    specs: { gears: "8-speed MicroSHIFT", weight: "11.8 kg", highlight: "Wide puncture-resistant tires" },
+    image: "/bikes/marin-fairfax.jpg",
+    specs: { gears: "21-speed Tourney", weight: "12.3 kg", highlight: "Comfort saddle with kickstand" },
   },
   "bike-city-4": {
     modelName: "Cannondale Quick 4",
@@ -123,22 +123,22 @@ export const bikeMetadata: Record<string, BikeMeta> = {
 
   // Racing bikes
   "bike-race-1": {
-    modelName: "Specialized Tarmac SL7",
+    modelName: "Specialized Allez",
     type: "Racing",
-    image: "/bikes/bike-4.jpg",
-    specs: { gears: "22-speed 105 Di2", weight: "7.9 kg", highlight: "Full carbon aerodynamic frame" },
+    image: "/bikes/specialized-allez.jpg",
+    specs: { gears: "24-speed 105", weight: "8.0 kg", highlight: "Featherweight alloy road frame" },
   },
   "bike-race-2": {
-    modelName: "Trek Émonda SL 6 Disc",
+    modelName: "Trek Domane",
     type: "Racing",
-    image: "/bikes/bike-5.jpg",
-    specs: { gears: "22-speed Ultegra", weight: "8.2 kg", highlight: "Ultra-lightweight climbing road bike" },
+    image: "/bikes/trek-domane.jpg",
+    specs: { gears: "12-speed Shimano", weight: "8.0 kg", highlight: "Carbon endurance geometry" },
   },
   "bike-race-3": {
-    modelName: "Cannondale SuperSix EVO",
+    modelName: "Cannondale CAAD13",
     type: "Racing",
-    image: "/bikes/bike-1.jpg",
-    specs: { gears: "24-speed Rival AXS", weight: "8.1 kg", highlight: "Wind-tunnel tested carbon aero" },
+    image: "/bikes/cannondale-caad13.jpg",
+    specs: { gears: "24-speed Rival AXS", weight: "8.4 kg", highlight: "Alloy endurance road frame" },
   },
   "bike-race-4": {
     modelName: "Giant Propel Advanced 2",
@@ -155,22 +155,22 @@ export const bikeMetadata: Record<string, BikeMeta> = {
 
   // Hybrid bikes
   "bike-hyb-1": {
-    modelName: "Trek Dual Sport 3 Gen 5",
+    modelName: "Trek FX Series",
     type: "Hybrid",
-    image: "/bikes/bike-5.jpg",
+    image: "/bikes/trek-fx-3.jpg",
     specs: { gears: "10-speed Deore", weight: "11.8 kg", highlight: "Pavement & rough trail versatility" },
   },
   "bike-hyb-2": {
-    modelName: "Giant Roam 3 Disc",
+    modelName: "Cannondale Quick",
     type: "Hybrid",
-    image: "/bikes/bike-1.jpg",
-    specs: { gears: "16-speed Tourney", weight: "12.5 kg", highlight: "Lockout front suspension & gravel tires" },
+    image: "/bikes/cannondale-quick.jpg",
+    specs: { gears: "9-speed Advent", weight: "10.9 kg", highlight: "Agile urban navigation build" },
   },
   "bike-hyb-3": {
-    modelName: "Specialized Crosstrail Sport",
+    modelName: "Giant Escape",
     type: "Hybrid",
-    image: "/bikes/bike-2.jpg",
-    specs: { gears: "18-speed Altus", weight: "12.2 kg", highlight: "Ergonomic Body Geometry grips" },
+    image: "/bikes/giant-escape.jpg",
+    specs: { gears: "21-speed Shimano", weight: "12.1 kg", highlight: "Upright geometry & mudguards" },
   },
   "bike-hyb-4": {
     modelName: "Cannondale Bad Boy 3",
@@ -224,11 +224,11 @@ export function getBikeMeta(bike: EasyRideBicycle, index = 0): BikeMeta {
   // Fallback metadata based on type
   const type = (bike.type as BikeType) || "City";
   const defaultImages: Record<BikeType, string> = {
-    Electric: "/bikes/bike-1.jpg",
-    Mountain: "/bikes/bike-2.jpg",
-    City: "/bikes/bike-3.jpg",
-    Racing: "/bikes/bike-4.jpg",
-    Hybrid: "/bikes/bike-5.jpg",
+    Electric: "/bikes/specialized-turbo-vado.jpg",
+    Mountain: "/bikes/trek-marlin-7.jpg",
+    City: "/bikes/schwinn-wayfarer.jpg",
+    Racing: "/bikes/specialized-allez.jpg",
+    Hybrid: "/bikes/trek-fx-3.jpg",
   };
   return {
     modelName: `${type} Ride ${bike.code}`,
