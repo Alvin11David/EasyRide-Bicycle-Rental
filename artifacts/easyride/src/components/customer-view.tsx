@@ -420,124 +420,6 @@ export function CustomerView({
       <div>
         {/* BEGIN: Fixed Top Bar (announcement + navigation) */}
         <div className="sticky top-0 z-40">
-        {/* BEGIN: Top Announcement Banner */}
-        <header className="bg-brand-dark text-slate-200 text-xs py-2 px-4 sm:px-8 border-b border-white/10" data-purpose="top-announcement-bar">
-          <div className="max-w-7xl mx-auto flex flex-wrap justify-between items-center gap-2 font-medium">
-            <div className="flex items-center space-x-6">
-              <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
-                Free Delivery on rentals above {money(150000, currency)}
-              </span>
-              <span className="flex items-center gap-1.5">
-                <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
-                100% Verified Fleet &amp; Secure Payments
-              </span>
-            </div>
-            <div className="flex items-center space-x-4 text-slate-300">
-              <button onClick={() => setOrdersModalOpen(true)} className="hover:text-white flex items-center gap-1 transition cursor-pointer text-xs">
-                <svg className="w-3.5 h-3.5 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
-                My Orders
-                <span className="ml-1 px-1.5 py-0.2 bg-brand-gold text-brand-dark rounded-full text-[10px] font-bold">
-                  {activeOrdersCount}
-                </span>
-              </button>
-              <span className="text-white/20">|</span>
-
-              {/* User Profile with Dropdown Menu */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 cursor-pointer group text-xs text-slate-200 hover:text-white focus:outline-none"
-                >
-                  <div className="w-5 h-5 rounded-full bg-brand-gold text-brand-dark flex items-center justify-center font-bold text-[10px]">
-                    {(currentUser?.name || "Atugonza")[0].toUpperCase()}
-                  </div>
-                  <span>
-                    HELLO, <strong className="text-white">{currentUser?.name?.toUpperCase() || "ATUGONZA"}</strong>
-                  </span>
-                  <svg
-                    className={`w-3 h-3 text-slate-400 group-hover:text-white transition transform ${userMenuOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                  </svg>
-                </button>
-
-                {userMenuOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white shadow-xl border border-slate-100 p-2 text-slate-700 z-50 animate-in fade-in zoom-in-95 duration-150">
-                    <div className="px-3 py-2 border-b border-slate-100 mb-1">
-                      <div className="font-bold text-xs text-brand-dark">{currentUser?.name || "Atugonza"}</div>
-                      <div className="text-[10px] text-emerald-700 font-semibold flex items-center gap-1 mt-0.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Verified Customer · Rider
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => { setUserMenuOpen(false); setOrdersModalOpen(true); }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-slate-700 rounded-xl hover:bg-slate-50 transition cursor-pointer"
-                    >
-                      <span>🛍️</span>
-                      <span>My Orders ({activeOrdersCount})</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        if (onBackToGuest) onBackToGuest();
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-semibold text-teal-800 rounded-xl hover:bg-teal-50 transition cursor-pointer"
-                    >
-                      <span>←</span>
-                      <span>Return to Guest Dashboard</span>
-                    </button>
-                    <div className="border-t border-slate-100 my-1"></div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        if (onSignOut) onSignOut();
-                      }}
-                      className="flex items-center gap-2 w-full px-3 py-2 text-xs font-bold text-rose-600 rounded-xl hover:bg-rose-50 transition cursor-pointer"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-                      </svg>
-                      <span>Sign Out</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Direct Visible Sign Out Button */}
-              {onSignOut && (
-                <>
-                  <span className="text-white/20">|</span>
-                  <button
-                    type="button"
-                    onClick={onSignOut}
-                    className="px-2.5 py-1 rounded-full bg-white/10 hover:bg-rose-600 hover:text-white text-slate-200 text-[10px] font-bold transition cursor-pointer flex items-center gap-1 shadow-xs"
-                    title="Sign Out to Guest Dashboard"
-                  >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"></path>
-                    </svg>
-                    <span>Sign Out</span>
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-        {/* END: Top Announcement Banner */}
 
         {/* BEGIN: Main Navigation Bar */}
         <nav className="bg-white border-b border-brand-border/60 shadow-sm" data-purpose="primary-navigation">
@@ -611,15 +493,98 @@ export function CustomerView({
                 </svg>
               </button>
 
-              <button
-                onClick={() => setHubsModalOpen(true)}
-                className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-full bg-brand-mintLight text-brand-dark hover:bg-emerald-200 transition cursor-pointer"
-              >
-                <svg className="w-3.5 h-3.5 text-brand-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path d="M13 10V3L4 14h7v7l9-11h-7z" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"></path>
-                </svg>
-                Live Hubs (4 Open)
-              </button>
+                {/* User Profile with Dropdown Menu */}
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex cursor-pointer items-center gap-2 text-xs text-slate-500 transition-colors hover:text-brand-dark focus:outline-none"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-dark text-xs font-bold text-white ring-2 ring-brand-mint/40">
+                    {(currentUser?.name || "Atugonza")[0].toUpperCase()}
+                  </span>
+                  <span className="hidden sm:inline">
+                    HELLO,{" "}
+                    <strong className="text-brand-dark">
+                      {currentUser?.name?.toUpperCase() || "ATUGONZA"}
+                    </strong>
+                  </span>
+                  <svg
+                    className={`h-3 w-3 text-slate-400 transition-transform group-hover:text-brand-dark ${userMenuOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      d="M19 9l-7 7-7-7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                    />
+                  </svg>
+                </button>
+
+                {userMenuOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-56 rounded-2xl bg-white p-2 text-slate-700 shadow-xl ring-1 ring-slate-100 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="mb-1 border-b border-slate-100 px-3 py-2">
+                      <div className="text-xs font-bold text-brand-dark">
+                        {currentUser?.name || "Atugonza"}
+                      </div>
+                      <div className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        Verified Customer · Rider
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setOrdersModalOpen(true);
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <span>🛍️</span>
+                      <span>My Orders ({activeOrdersCount})</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        if (onBackToGuest) onBackToGuest();
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-xs font-semibold text-teal-800 transition hover:bg-teal-50"
+                    >
+                      <span>←</span>
+                      <span>Return to Guest Dashboard</span>
+                    </button>
+                    <div className="my-1 border-t border-slate-100" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        if (onSignOut) onSignOut();
+                      }}
+                      className="flex w-full cursor-pointer items-center gap-2 rounded-xl px-3 py-2 text-xs font-bold text-rose-600 transition hover:bg-rose-50"
+                    >
+                      <svg
+                        className="h-3.5 w-3.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
             </div>
           </div>
         </nav>

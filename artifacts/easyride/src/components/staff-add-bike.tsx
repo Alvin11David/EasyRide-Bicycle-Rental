@@ -17,6 +17,7 @@ import type {
 import { getBikeMeta } from "@/lib/mock-data";
 import { saveCustomBikeMeta } from "@/lib/custom-bike-meta";
 import { fileToStorableImage } from "@/lib/image-upload";
+import { toast } from "@/hooks/use-toast";
 import { uid, when } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -264,6 +265,14 @@ export default function StaffAddBike({
 
     setError("");
     setRegistered({ id, code: cleanCode });
+
+    // Corner notification: the bike is on the fleet from here on.
+    toast({
+      title: `${cleanCode} joined the fleet`,
+      description: `${cleanModel} is parked at ${
+        chosenStation?.name ?? "the station"
+      } and is ready to rent.`,
+    });
   };
 
   return (
