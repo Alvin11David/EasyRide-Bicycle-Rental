@@ -6,6 +6,7 @@ import type {
   EasyRideMaintenance,
   EasyRideActivity,
 } from "@workspace/api-client-react";
+import { readCustomBikeMeta } from "@/lib/custom-bike-meta";
 
 export type BikeType = "Electric" | "Mountain" | "City" | "Racing" | "Hybrid";
 
@@ -208,6 +209,17 @@ export const bikeMetadata: Record<string, BikeMeta> = {
 export function getBikeMeta(bike: EasyRideBicycle, index = 0): BikeMeta {
   if (bikeMetadata[bike.id]) {
     return bikeMetadata[bike.id];
+  }
+  // Bicycles registered by staff at runtime keep their details in a local
+  // store (there is no backend).
+  const custom = readCustomBikeMeta()[bike.id];
+  if (custom) {
+    return {
+      modelName: custom.modelName,
+      type: (custom.type as BikeType) || "City",
+      image: custom.image,
+      specs: custom.specs,
+    };
   }
   // Fallback metadata based on type
   const type = (bike.type as BikeType) || "City";

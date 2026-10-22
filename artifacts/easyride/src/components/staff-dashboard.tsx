@@ -10,6 +10,7 @@ import type {
 import type { EasyRideUser } from "@/hooks/use-auth";
 import { getBikeMeta } from "@/lib/mock-data";
 import StaffReturnFlow from "@/components/staff-return-flow";
+import StaffAddBike from "@/components/staff-add-bike";
 import {
   isCustomerRental,
   readCustomerRentalMeta,
@@ -250,6 +251,7 @@ function Glyph({ name, className = "" }: { name: GlyphName; className?: string }
 type StaffSection =
   | "dashboard"
   | "borrowed"
+  | "addbike"
   | "transactions"
   | "customers"
   | "maintenance"
@@ -266,6 +268,7 @@ const NAV_ITEMS: {
 }[] = [
   { id: "dashboard", icon: "home", title: "Dashboard", subtitle: "Overview & statistics" },
   { id: "borrowed", icon: "bike", title: "Borrowed Bikes", subtitle: "Fleet in use & returns" },
+  { id: "addbike", icon: "plus", title: "Add Bike", subtitle: "Register new bicycle" },
   { id: "transactions", icon: "card", title: "Manual Transactions", subtitle: "Manage fleet" },
   { id: "customers", icon: "users", title: "Customer Management", subtitle: "Manage customers" },
   { id: "maintenance", icon: "cog", title: "Maintenance", subtitle: "Team management" },
@@ -295,6 +298,12 @@ const SECTION_TITLES: Record<
     eyebrow: "Station Desk",
     title: "Manual Transactions",
     detail: "Inspect bikes on the rack, confirm holds and hand bikes over to riders.",
+  },
+  addbike: {
+    eyebrow: "Fleet Management",
+    title: "Add Bike",
+    detail:
+      "Register a new bicycle, assign it to a station and run the handover check before it joins the rentable fleet.",
   },
   customers: {
     eyebrow: "Riders",
@@ -668,8 +677,20 @@ export default function StaffDashboard({
           (a, b) =>
             new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
         )
-        .slice(0, 4),
-    [state.rentals],
+        .slice(0, 4)
+        .map((rental) => {
+          // The bicycle behind the hire, so the list can show its picture.
+          const bike = state.bicycles.find(
+            (b) => b.code === rental.bicycleCode,
+          );
+          const meta = bike ? getBikeMeta(bike) : null;
+          return {
+            rental,
+            image: meta?.image ?? null,
+            modelName: meta?.modelName ?? "",
+          };
+        }),
+    [state.rentals, state.bicycles],
   );
 
   const movementEvents = useMemo(
@@ -1061,40 +1082,50 @@ export default function StaffDashboard({
             <div className="divide-y divide-slate-100">
               {recentTransactions.map((r) => (
                 <div
-                  key={r.id}
+                  key={r.rental.id}
                   className="group flex items-center justify-between gap-4 px-6 py-4 transition-colors hover:bg-slate-50/80"
                 >
                   <div className="flex min-w-0 items-center gap-4">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-100 text-staff-teal transition-colors duration-150 group-hover:bg-staff-teal group-hover:text-white">
-                      <Glyph name="bike" className="h-5 w-5" />
-                    </div>
+                    {r.image ? (
+                      <img
+                        src={r.image}
+                        alt={r.modelName || r.rental.bicycleCode}
+                        className="h-11 w-11 shrink-0 rounded-xl border border-slate-200/80 bg-slate-100 object-cover transition-transform duration-150 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200/80 bg-slate-100 text-staff-teal transition-colors duration-150 group-hover:bg-staff-teal group-hover:text-white">
+                        <Glyph name="bike" className="h-5 w-5" />
+                      </div>
+                    )}
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="font-display text-sm font-semibold text-slate-900">
-                          {r.customerName}
+                          {r.rental.customerName}
                         </span>
                         <span
                           className={`rounded-full border px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase ${
-                            r.status === "active"
+                            r.rental.status === "active"
                               ? "border-emerald-200/50 bg-emerald-100 text-emerald-800"
                               : "border-slate-200/70 bg-slate-100 text-slate-600"
                           }`}
                         >
-                          {r.status}
+                          {r.rental.status}
                         </span>
                       </div>
                       <p className="mt-0.5 truncate text-xs font-normal text-slate-500">
-                        Rented {r.bicycleCode}
-                        {r.returnedAt ? ` · returned ${niceDate(r.returnedAt)}` : ""}
+                        Rented {r.rental.bicycleCode}
+                        {r.rental.returnedAt
+                          ? ` · returned ${niceDate(r.rental.returnedAt)}`
+                          : ""}
                       </p>
                     </div>
                   </div>
                   <div className="shrink-0 text-right">
                     <div className="font-display text-sm font-bold text-slate-900">
-                      {money(r.amount, state.config.currency)}
+                      {money(r.rental.amount, state.config.currency)}
                     </div>
                     <div className="mt-0.5 font-mono text-xs text-slate-400">
-                      {clockTime(r.startedAt)}
+                      {clockTime(r.rental.startedAt)}
                     </div>
                   </div>
                 </div>
@@ -2663,6 +2694,8 @@ export default function StaffDashboard({
     switch (section) {
       case "borrowed":
         return renderBorrowed();
+      case "addbike":
+        return renderAddBike();
       case "transactions":
         return renderTransactions();
       case "customers":
@@ -2680,6 +2713,30 @@ export default function StaffDashboard({
       default:
         return renderDashboard();
     }
+  };
+
+  // -------------------------------------------------------------------------
+  // Add Bike — register a new bicycle in the fleet
+  // -------------------------------------------------------------------------
+
+  const renderAddBike = () => {
+    const heading = SECTION_TITLES.addbike;
+
+    return (
+      <div className="space-y-6">
+        <SectionHeading
+          eyebrow={heading.eyebrow}
+          title={heading.title}
+          detail={heading.detail}
+        />
+
+        <StaffAddBike
+          state={state}
+          save={save}
+          staffName={currentUser?.name || "Station Worker"}
+        />
+      </div>
+    );
   };
 
   /**

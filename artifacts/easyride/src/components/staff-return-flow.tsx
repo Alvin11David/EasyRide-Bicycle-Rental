@@ -487,24 +487,9 @@ export default function StaffReturnFlow({
   }, [answered, notes]);
 
   const steps = [
-    {
-      id: 1,
-      title: "Check Bike Condition",
-      subtitle: "Check passed & recorded",
-      pageTitle: "Check Bike Condition",
-    },
-    {
-      id: 2,
-      title: "Park & Assign",
-      subtitle: "Choose parking spot",
-      pageTitle: "Park Bike & Set Status",
-    },
-    {
-      id: 3,
-      title: "Receipt & Finish",
-      subtitle: "Send receipt & complete",
-      pageTitle: "Finish Return & Give Receipt",
-    },
+    { id: 1, pageTitle: "Check Bike Condition" },
+    { id: 2, pageTitle: "Park Bike & Set Status" },
+    { id: 3, pageTitle: "Finish Return & Give Receipt" },
   ];
 
   const finish = () => {
@@ -608,69 +593,6 @@ export default function StaffReturnFlow({
           </button>
         </div>
       </div>
-
-      {/* Elevated 3-step return stepper */}
-      <section
-        aria-label="Progress stepper"
-        className="rounded-xl bg-white px-6 py-4 shadow-card"
-      >
-        <div className="relative grid grid-cols-1 items-center gap-4 md:grid-cols-3">
-          {steps.map((item) => {
-            const active = item.id === step;
-            const done = item.id < step;
-            return (
-              <div
-                key={item.id}
-                className={cn(
-                  "flex items-center gap-3",
-                  active && "rounded-lg bg-slate-50 p-3",
-                )}
-              >
-                <div
-                  className={cn(
-                    "flex h-10 w-10 shrink-0 items-center justify-center rounded-full shadow-sm",
-                    active
-                      ? "bg-staff-pine text-emerald-200"
-                      : done
-                        ? "bg-staff-teal text-emerald-200"
-                        : "bg-slate-200 text-slate-500",
-                  )}
-                >
-                  {done ? (
-                    <Icon name="checkCircle" className="h-[22px] w-[22px]" />
-                  ) : (
-                    <span className="text-xl font-bold leading-none">
-                      {item.id}
-                    </span>
-                  )}
-                </div>
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate text-sm font-bold text-staff-pine">
-                    Step {item.id}: {item.title}
-                  </span>
-                  <span
-                    className={cn(
-                      "flex items-center gap-1 truncate text-xs font-medium",
-                      done ? "text-emerald-700" : "text-slate-500",
-                    )}
-                  >
-                    {done ? (
-                      <>
-                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />
-                        {item.id === 2 && activeSpot
-                          ? `Parked at Spot #${activeSpot.number}`
-                          : "Check passed & recorded"}
-                      </>
-                    ) : (
-                      item.subtitle
-                    )}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </section>
 
       {/* Page header & badges */}
       <div className="flex flex-col gap-4">
